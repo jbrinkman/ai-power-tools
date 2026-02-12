@@ -35,7 +35,7 @@ This power includes specialized workflow guides for specific tasks:
 
 To access a workflow, use:
 
-```
+```text
 Call action "readSteering" with powerName="atlassian-spec-reviewer", steeringFile="<workflow-name>.md"
 ```
 
@@ -73,19 +73,19 @@ Test with Confluence: `"Show me all Confluence spaces I have access to"`
 ### Workflow 1: Find and Implement Assigned Tasks
 
 **Find your tasks:**
-```
+```text
 "Search Jira for my tasks in current sprint"
 "Show me all high priority tasks assigned to me"
 ```
 
 **Get complete details with subtasks:**
-```
+```text
 "Get full details for PROJ-123 including all subtasks"
 "Read all requirements for PROJ-123 from main task and subtasks"
 ```
 
 **Implement with full context:**
-```
+```text
 "Implement PROJ-123, addressing all main task and subtask requirements"
 "Create implementation for PROJ-123 following all acceptance criteria"
 ```
@@ -93,19 +93,19 @@ Test with Confluence: `"Show me all Confluence spaces I have access to"`
 ### Workflow 2: Review Code Against Requirements
 
 **Get complete requirements:**
-```
+```text
 "Get all requirements for PROJ-789 including subtasks"
 "Read PROJ-789 with all linked subtasks and acceptance criteria"
 ```
 
 **Review existing code:**
-```
+```text
 "Review src/auth/login.ts against all PROJ-789 requirements"
 "Check if src/features/payment.ts implements all PROJ-456 requirements"
 ```
 
 **Generate compliance checklist:**
-```
+```text
 "Create checklist showing which PROJ-789 requirements are met vs missing"
 "Compare src/api/users.ts against PROJ-234 and list gaps"
 ```
@@ -113,14 +113,14 @@ Test with Confluence: `"Show me all Confluence spaces I have access to"`
 ### Workflow 3: Advanced Search with JQL
 
 **Find specific tasks:**
-```
+```text
 "Search: assignee = currentUser() AND status = 'In Progress'"
 "Search: project = PROJ AND sprint in openSprints() ORDER BY priority DESC"
 "Search: priority = High AND assignee = currentUser() AND status != Done"
 ```
 
 **Filter by criteria:**
-```
+```text
 "Find all bugs assigned to me"
 "Show tasks in current sprint that are blocked"
 "List all stories in PROJ project that are ready for review"
@@ -129,21 +129,21 @@ Test with Confluence: `"Show me all Confluence spaces I have access to"`
 ### Workflow 4: Read Confluence Documentation
 
 **Find documentation:**
-```
+```text
 "Show me all Confluence spaces"
 "List pages in the Engineering space"
 "Search Confluence for API documentation"
 ```
 
 **Read specifications:**
-```
+```text
 "Get the content of Confluence page 123456"
 "Read the API Design Guidelines page from Confluence"
 "Show me the Architecture Decision Records space"
 ```
 
 **Access discussions:**
-```
+```text
 "Get all comments on Confluence page 123456"
 "Show inline comments for the API spec page"
 "Read footer comments on the design document"
@@ -152,14 +152,14 @@ Test with Confluence: `"Show me all Confluence spaces I have access to"`
 ### Workflow 5: Implement from Jira + Confluence
 
 **Gather complete requirements:**
-```
+```text
 "Get requirements from PROJ-123 and related Confluence pages"
 "Read PROJ-456 and search Confluence for related API documentation"
 "Show me PROJ-789 details and find the design doc in Confluence"
 ```
 
 **Implement with full context:**
-```
+```text
 "Implement PROJ-123 following both Jira requirements and Confluence API specs"
 "Create feature based on PROJ-456 and the Architecture page in Confluence"
 ```
@@ -167,14 +167,14 @@ Test with Confluence: `"Show me all Confluence spaces I have access to"`
 ### Workflow 6: Search Confluence with CQL
 
 **Find documentation:**
-```
+```text
 "Search Confluence: type=page AND space=ENG AND title~'API'"
 "Search Confluence: creator=currentUser() AND lastModified>=now('-7d')"
 "Search Confluence: label='architecture' AND space='TECH'"
 ```
 
 **Filter by criteria:**
-```
+```text
 "Find all pages in Engineering space with 'security' in title"
 "Show recently updated pages in the Product space"
 "List all pages labeled 'onboarding'"
@@ -186,7 +186,7 @@ This power uses read-only tools from the Atlassian MCP server for both Jira and 
 
 ### Jira Tools
 
-### getJiraIssue
+#### getJiraIssue
 Get detailed issue information including subtasks.
 
 **Parameters:**
@@ -197,7 +197,7 @@ Get detailed issue information including subtasks.
 
 **Use for:** Reading full task details before implementation or review
 
-### searchJiraIssuesUsingJql
+#### searchJiraIssuesUsingJql
 Search issues with JQL (Jira Query Language).
 
 **Parameters:**
@@ -213,7 +213,7 @@ Search issues with JQL (Jira Query Language).
 
 **Use for:** Finding tasks to work on
 
-### getVisibleJiraProjects
+#### getVisibleJiraProjects
 List all projects you have access to.
 
 **Parameters:**
@@ -223,14 +223,14 @@ List all projects you have access to.
 
 **Use for:** Discovering available projects
 
-### getAccessibleAtlassianResources
+#### getAccessibleAtlassianResources
 List all accessible Atlassian resources and cloud IDs.
 
 **Returns:** Available cloud IDs and resources
 
 **Use for:** Getting cloud ID for other operations
 
-### atlassianUserInfo
+#### atlassianUserInfo
 Get current authenticated user information.
 
 **Parameters:**
@@ -242,7 +242,7 @@ Get current authenticated user information.
 
 ### Confluence Tools
 
-### getConfluencePage
+#### getConfluencePage
 Get detailed page content including body, metadata, and version history.
 
 **Parameters:**
@@ -253,7 +253,7 @@ Get detailed page content including body, metadata, and version history.
 
 **Use for:** Reading specifications, documentation, and design documents
 
-### searchConfluenceUsingCql
+#### searchConfluenceUsingCql
 Search Confluence pages with CQL (Confluence Query Language).
 
 **Parameters:**
@@ -270,7 +270,7 @@ Search Confluence pages with CQL (Confluence Query Language).
 
 **Use for:** Finding documentation and specifications
 
-### getConfluenceSpaces
+#### getConfluenceSpaces
 List all Confluence spaces you have access to.
 
 **Parameters:**
@@ -280,7 +280,7 @@ List all Confluence spaces you have access to.
 
 **Use for:** Discovering available documentation spaces
 
-### getPagesInConfluenceSpace
+#### getPagesInConfluenceSpace
 Get all pages within a specific Confluence space.
 
 **Parameters:**
@@ -292,7 +292,7 @@ Get all pages within a specific Confluence space.
 
 **Use for:** Browsing space contents
 
-### getConfluencePageFooterComments
+#### getConfluencePageFooterComments
 Get footer comments (page-level comments) for a Confluence page.
 
 **Parameters:**
@@ -303,7 +303,7 @@ Get footer comments (page-level comments) for a Confluence page.
 
 **Use for:** Reading discussions and feedback on documentation
 
-### getConfluencePageInlineComments
+#### getConfluencePageInlineComments
 Get inline comments (comments on specific content) for a Confluence page.
 
 **Parameters:**
@@ -314,7 +314,7 @@ Get inline comments (comments on specific content) for a Confluence page.
 
 **Use for:** Reading specific feedback on document sections
 
-### getConfluencePageDescendants
+#### getConfluencePageDescendants
 Get child pages and descendants of a Confluence page.
 
 **Parameters:**
@@ -341,6 +341,8 @@ The following write operations are disabled in this power:
 - `updateConfluencePage` - Update existing pages
 - `createConfluenceFooterComment` - Add footer comments
 - `createConfluenceInlineComment` - Add inline comments
+
+**Note on delete operations:** The official Atlassian Remote MCP server does not currently expose delete tools. If future server versions add delete capabilities (e.g., `deleteJiraIssue`, `deleteConfluencePage`), they should be added to the `disabledTools` list in `mcp.json` to maintain the read-only guarantee.
 
 This ensures the power remains read-only and focused on requirements gathering and code validation.
 
