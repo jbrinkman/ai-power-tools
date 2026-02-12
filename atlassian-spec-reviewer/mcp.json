@@ -1,0 +1,40 @@
+{
+  "mcpServers": {
+    "atlassian-mcp": {
+      "url": "https://mcp.atlassian.com/v1/mcp",
+      "disabled": false,
+      "autoApprove": [
+        "getAccessibleAtlassianResources",
+        "atlassianUserInfo",
+        "getJiraIssue",
+        "searchJiraIssuesUsingJql",
+        "getVisibleJiraProjects",
+        "getJiraProjectIssueTypesMetadata",
+        "getJiraIssueTypeMetaWithFields",
+        "getTransitionsForJiraIssue",
+        "getJiraIssueRemoteIssueLinks",
+        "lookupJiraAccountId",
+        "getConfluencePage",
+        "searchConfluenceUsingCql",
+        "getConfluenceSpaces",
+        "getPagesInConfluenceSpace",
+        "getConfluencePageFooterComments",
+        "getConfluencePageInlineComments",
+        "getConfluencePageDescendants",
+        "search",
+        "fetch"
+      ],
+      "disabledTools": [
+        "editJiraIssue",
+        "createJiraIssue",
+        "addCommentToJiraIssue",
+        "transitionJiraIssue",
+        "addWorklogToJiraIssue",
+        "createConfluencePage",
+        "updateConfluencePage",
+        "createConfluenceFooterComment",
+        "createConfluenceInlineComment"
+      ]
+    }
+  }
+}
