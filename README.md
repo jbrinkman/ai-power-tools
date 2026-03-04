@@ -50,6 +50,30 @@ https://github.com/jbrinkman/ai-power-tools/powers/review-valkey-narrative
 - Access to Confluence space (AMZ)
 - Authenticated Jira SSE MCP server connection
 
+### Atlassian Spec Reviewer
+
+Read-only Atlassian integration for gathering requirements from Jira issues (including subtasks) and Confluence documentation. Review and implement code against complete specifications.
+
+**Installation:**
+
+```
+https://github.com/jbrinkman/ai-power-tools/powers/atlassian-spec-reviewer
+```
+
+**Features:**
+
+- Find assigned Jira tasks with JQL search
+- Read complete task details including subtasks
+- Search and read Confluence documentation with CQL
+- Access Confluence page comments and discussions
+- Review code against Jira and Confluence specifications
+- Read-only by design for safe requirements gathering
+
+**Requirements:**
+
+- Active Atlassian/Jira Cloud account
+- Kiro IDE with Powers support
+
 ## How to Install Powers
 
 1. Open Kiro Powers UI
@@ -62,6 +86,13 @@ https://github.com/jbrinkman/ai-power-tools/powers/review-valkey-narrative
 ```
 ai-power-tools/
 ├── powers/
+│   ├── atlassian-spec-reviewer/
+│   │   ├── POWER.md
+│   │   ├── mcp.json
+│   │   └── steering/
+│   │       ├── code-review-workflow.md
+│   │       ├── implementation-workflow.md
+│   │       └── requirements-gathering.md
 │   ├── jira-story-wizard/
 │   │   ├── POWER.md
 │   │   ├── mcp.json
