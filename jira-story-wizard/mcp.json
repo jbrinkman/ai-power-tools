@@ -15,25 +15,6 @@
                 "search"
             ],
             "disabledTools": []
-        },
-        "puppeteer": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@modelcontextprotocol/server-puppeteer@latest"
-            ],
-            "disabled": false,
-            "autoApprove": [
-                "puppeteer_screenshot",
-                "puppeteer_navigate"
-            ],
-            "disabledTools": [
-                "puppeteer_click",
-                "puppeteer_fill",
-                "puppeteer_select",
-                "puppeteer_hover",
-                "puppeteer_evaluate"
-            ]
         }
     }
 }
