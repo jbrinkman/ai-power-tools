@@ -155,6 +155,7 @@ Once approved:
 3. **Ask about markdown file**
    - "Would you like me to save a markdown file with the story details? If yes, what filename should I use?"
    - Only create the file if user confirms and provides a filename
+   - When creating the markdown file, include the original prompt in a section at the top of the file.
 
 ## Important Notes
 

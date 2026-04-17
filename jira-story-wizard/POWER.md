@@ -78,14 +78,7 @@ For the smoothest experience, consider auto-approving these frequently used tool
 
 ### Standard Labels
 
-The wizard uses these standard labels to maintain consistency across stories:
-
-- `Spike` - Research or investigation work
-- `PR-Needed` - Requires pull request to external repository
-- `New-Integration` - New third-party system integration
-- `Enhancement` - Improvement to existing functionality
-
-**Important:** Jira labels cannot contain spaces. Always use hyphens or underscores (e.g., `New-Integration` not `New Integration`).
+The wizard uses a set of standard labels to maintain consistency across stories. The authoritative list of labels is defined in the [workflow steering file](steering/workflow.md). Labels cannot contain spaces — always use hyphens or underscores.
 
 ## Common Workflows
 
