@@ -1,8 +1,8 @@
 ---
 name: "jira-story-wizard"
 displayName: "Jira Story Wizard"
-description: "Interactive wizard for creating well-structured Jira stories with user story best practices, acceptance criteria, and optional screenshots for visual context."
-keywords: ["jira", "story", "user-story", "agile", "epic", "acceptance-criteria", "screenshot"]
+description: "Interactive wizard for creating well-structured Jira stories with user story best practices and acceptance criteria."
+keywords: ["jira", "story", "user-story", "agile", "epic", "acceptance-criteria"]
 author: "Joe Brinkman"
 ---
 
@@ -10,9 +10,9 @@ author: "Joe Brinkman"
 
 ## Overview
 
-The Jira Story Wizard is an interactive agent-guided workflow for creating professional, well-structured Jira stories that follow user story best practices. It combines the power of the Atlassian Jira MCP server with Puppeteer screenshot capabilities to help you create comprehensive stories with visual context.
+The Jira Story Wizard is an interactive agent-guided workflow for creating professional, well-structured Jira stories that follow user story best practices. It leverages the Atlassian Jira MCP server to help you create comprehensive stories with clear requirements.
 
-This power guides you through a structured process to gather requirements, analyze documentation, generate acceptance criteria, and optionally capture screenshots to attach to your stories. The result is consistently formatted, detailed Jira stories that your team can immediately act on.
+This power guides you through a structured process to gather requirements, analyze documentation, generate acceptance criteria, and create consistently formatted, detailed Jira stories that your team can immediately act on.
 
 **Key capabilities:**
 
@@ -20,7 +20,6 @@ This power guides you through a structured process to gather requirements, analy
 - Automatic fetching and analysis of documentation URLs
 - Generation of well-structured descriptions with multiple sections
 - Smart acceptance criteria based on story context
-- Screenshot capture for visual reference
 - Support for Epic linking and custom labels
 - Consistent formatting following user story best practices
 
@@ -45,17 +44,13 @@ The workflow steering file is automatically invoked when you mention creating a 
 - Active Atlassian/Jira account with story creation permissions
 - Access to the Jira project where stories will be created
 - Authenticated Jira MCP server connection
-- Node.js installed (for Puppeteer screenshot functionality)
 
 ### Configuration
 
 **Jira MCP Server:**
 The Jira SSE server connects to Atlassian's MCP endpoint and requires authentication through your Atlassian account. Authentication is handled automatically when you first use Jira tools in Kiro.
 
-**Puppeteer Screenshot Server:**
-The Puppeteer server runs locally via npx and requires no additional configuration. It will automatically download Chromium on first use.
-
-**No additional setup required** - both servers work out of the box once the power is installed.
+**No additional setup required** - the server works out of the box once the power is installed.
 
 ## Recommended Tool Approvals
 
@@ -72,30 +67,18 @@ For the smoothest experience, consider auto-approving these frequently used tool
 - `getJiraIssueTypeMetaWithFields` - Get field requirements for story creation
 - `search` - Unified search across Jira and Confluence
 
-### Puppeteer Server Tools
-
-- `puppeteer_screenshot` - Capture screenshots for visual reference
-- `puppeteer_navigate` - Navigate to URLs before taking screenshots
-
 ### Why These Tools Are Safe
 
 - **Read-only operations**: Most tools only retrieve information without making changes
 - **Controlled writes**: `createJiraIssue` only creates stories with user-provided content
-- **No system access**: Tools only interact with Jira/Confluence and web pages
+- **No system access**: Tools only interact with Jira/Confluence
 - **Transparent actions**: All operations are visible and logged in the conversation
 
 **Note:** You can always approve tools individually as prompts appear, but pre-approving these tools eliminates interruptions during the story creation workflow.
 
 ### Standard Labels
 
-The wizard uses these standard labels to maintain consistency across stories:
-
-- `Spike` - Research or investigation work
-- `PR-Needed` - Requires pull request to external repository
-- `New-Integration` - New third-party system integration
-- `Enhancement` - Improvement to existing functionality
-
-**Important:** Jira labels cannot contain spaces. Always use hyphens or underscores (e.g., `New-Integration` not `New Integration`).
+The wizard uses a set of standard labels to maintain consistency across stories. The authoritative list of labels is defined in the [workflow steering file](steering/workflow.md). Labels cannot contain spaces — always use hyphens or underscores.
 
 ## Common Workflows
 
@@ -179,37 +162,7 @@ Story: PROJ-456
 URL: https://yoursite.atlassian.net/browse/PROJ-456"
 ```
 
-### Workflow 2: Create a Story with Screenshot
-
-**Goal:** Create a Jira story that includes a screenshot for visual reference (e.g., UI mockup, error state, design reference).
-
-**Steps:**
-
-1-5. **Follow the same steps as Workflow 1** to create the basic story
-
-1. **Before or after story creation, capture a screenshot:**
-   - Provide the URL to screenshot
-   - Example: "Take a screenshot of <https://example.com/mockup>"
-
-2. **Screenshot is captured** and can be referenced in the story description or attached
-
-**Example:**
-
-```
-User: "Create a story for redesigning the login page, and include a screenshot of the current design"
-
-[Interactive workflow proceeds as in Workflow 1]
-
-Agent: "Would you like me to capture a screenshot of the current login page?"
-
-User: "Yes, screenshot https://app.myorg.com/login"
-
-Agent: "Screenshot captured successfully. I'll include a reference to it in the story description."
-```
-
-**Note:** Screenshots are captured and saved locally as PNG files. The Jira MCP server doesn't support automatic file attachment, so screenshots must be manually attached to Jira issues through the Jira UI after story creation.
-
-### Workflow 3: Create a Spike Story
+### Workflow 2: Create a Spike Story
 
 **Goal:** Create a research or investigation story (Spike) with appropriate labeling.
 
@@ -234,7 +187,7 @@ Agent: "Screenshot captured successfully. I'll include a reference to it in the 
 
 ## MCP Servers and Tools
 
-This power uses two MCP servers:
+This power uses one MCP server:
 
 ### Jira SSE Server
 
@@ -254,20 +207,6 @@ This power uses two MCP servers:
 - `search` - Unified search across Jira and Confluence
 
 **Auto-approved tools:** All tools listed above are pre-approved for seamless workflow.
-
-### Puppeteer Server
-
-**Server:** `puppeteer`  
-**Connection:** Local (STDIO) - npx @modelcontextprotocol/server-puppeteer
-
-**Available Tools:**
-
-- `puppeteer_screenshot` - Capture screenshots of web pages
-- `puppeteer_navigate` - Navigate to URLs for screenshot capture
-
-**Disabled Tools:** Form interaction tools (clicking, filling, selecting, hovering, JavaScript evaluation) are disabled to keep the context focused on screenshot functionality. Navigation is enabled and trusted as it's essential for capturing screenshots of specific URLs.
-
-**Auto-approved tools:** `puppeteer_screenshot` and `puppeteer_navigate` are pre-approved.
 
 ## Best Practices
 
@@ -327,18 +266,6 @@ Make criteria specific, testable, and measurable:
 - Use hyphens or underscores, never spaces
 - Limit to 3-5 labels per story
 
-### Screenshots
-
-Use screenshots for:
-
-- UI mockups or design references
-- Error states that need fixing
-- Current state before redesign
-- Visual bugs or layout issues
-- Competitor features for reference
-
-**Don't overuse screenshots** - only include them when visual context adds significant value.
-
 ## Troubleshooting
 
 ### Jira Connection Issues
@@ -375,38 +302,6 @@ Use screenshots for:
 - The project may not support "Story" issue type
 - Use `getJiraProjectIssueTypesMetadata` to see available types
 - Specify the correct issue type for your project
-
-### Screenshot Capture Issues
-
-**Problem:** Screenshot fails or times out
-
-**Solutions:**
-
-1. Verify the URL is accessible and loads properly
-2. Check your internet connection
-3. Try a simpler page first to verify Puppeteer is working
-4. Increase timeout if the page is slow to load
-5. Ensure Chromium downloaded successfully (first run may take time)
-
-**Problem:** Screenshot is blank or incomplete
-
-**Solutions:**
-
-1. The page may require JavaScript - wait for page load
-2. Some pages block headless browsers - this is expected for some sites
-3. Try a different URL to verify functionality
-4. Check if the page requires authentication
-
-**Problem:** How do I attach the screenshot to the Jira story?
-
-**Solution:** Screenshots are saved locally and must be manually attached:
-
-1. Open the Jira story in your browser (use the provided URL)
-2. Click the "Attach" button or paperclip icon
-3. Select the screenshot file from your local filesystem
-4. The file will be uploaded and attached to the story
-
-**Note:** The Jira MCP server doesn't support automatic file attachment - this is a limitation of the MCP implementation, not Jira itself.
 
 ### Sprint Assignment
 
@@ -463,9 +358,7 @@ When the wizard offers to save a markdown file:
 - **Jira API Documentation**: <https://developer.atlassian.com/cloud/jira/platform/rest/v3/>
 - **User Story Best Practices**: <https://www.atlassian.com/agile/project-management/user-stories>
 - **Acceptance Criteria Guide**: <https://www.atlassian.com/agile/project-management/acceptance-criteria>
-- **Puppeteer Documentation**: <https://pptr.dev/>
 
 ---
 
-**Package:** `@modelcontextprotocol/server-puppeteer@latest`  
-**MCP Servers:** jira-sse, puppeteer
+**MCP Servers:** jira-sse

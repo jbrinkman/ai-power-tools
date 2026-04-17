@@ -46,11 +46,7 @@ Collect the following information by asking questions **one at a time**:
 6. **Additional Reference URLs** (optional)
    - Ask: "Any additional reference URLs? Provide them with labels (e.g., 'API Guide: https://...' or 'none')"
 
-7. **Screenshot URL** (optional)
-   - Ask: "Would you like to include a screenshot for visual reference? If yes, provide the URL to capture (or 'none')"
-   - If provided, use the Puppeteer screenshot tool to capture it
-
-8. **Additional Context** (optional)
+7. **Additional Context** (optional)
    - Ask: "Any additional context or requirements I should know about? (or 'none')"
 
 ### Phase 2: Content Analysis
@@ -62,17 +58,10 @@ After gathering all information:
    - Review documentation for features, architecture, and integration points
    - Review additional references for specific context
 
-2. **Capture screenshot** (if URL provided)
-   - Use `puppeteer_screenshot` tool with `encoded: true` to capture the page as base64
-   - Save the screenshot as a local file for manual attachment to Jira
-   - Generate a descriptive filename based on the story context
-   - Note the screenshot file location for reference in the story
-
-3. **Synthesize information** to understand:
+2. **Synthesize information** to understand:
    - The project's purpose and capabilities
    - Technical architecture and integration opportunities
    - User needs and expected benefits
-   - Visual context from screenshot (if captured)
 
 ### Phase 3: Story Generation
 
@@ -93,7 +82,6 @@ Generate the complete Jira story with:
    - **Problem/Need**: What challenge or opportunity this addresses
    - **Proposed Solution**: How this story will address the need
    - **Value/Impact**: Expected benefits and outcomes
-   - **Screenshot Reference** (if captured): Note the local screenshot file path and instructions for manual attachment to Jira
    - If you believe more sections are needed, ask for user input before proceeding
 
 3. **Acceptance Criteria**
@@ -109,7 +97,6 @@ Generate the complete Jira story with:
    - List all provided URLs with descriptive labels:
      - Project Repository: [URL]
      - Documentation: [URL]
-   - If screenshot was captured, include the file path and attachment instructions
 
 5. **Labels**
    - Suggest relevant labels from the standard list
@@ -121,7 +108,7 @@ Generate the complete Jira story with:
 
 Present the complete story to the user for review:
 
-```
+```text
 Here's the proposed Jira story:
 
 **Title**: [generated title]
@@ -168,14 +155,12 @@ Once approved:
 3. **Ask about markdown file**
    - "Would you like me to save a markdown file with the story details? If yes, what filename should I use?"
    - Only create the file if user confirms and provides a filename
+   - When creating the markdown file, ask the user if you should include the original prompt in a section at the top of the file.
 
 ## Important Notes
 
 - Always ask questions one at a time and wait for responses
 - Fetch and analyze all URLs together after gathering complete context
-- Capture screenshots with `encoded: true` and save them as local files
-- Generate descriptive filenames for screenshots (e.g., "jira-story-AEA-123-screenshot.png")
-- Include screenshot file path and attachment instructions in story references
 - Generate professional, well-structured narratives using information from URLs and user input
 - The title should be short and action-oriented (under 10-12 words)
 - The description should start with the full user story, then include context sections
@@ -184,30 +169,3 @@ Once approved:
 - All labels must use hyphens or underscores, never spaces
 - Sprint assignment cannot be done via API - remind user to assign manually in Jira UI
 - Only create markdown files when explicitly requested by user
-
-## Screenshot Workflow
-
-When capturing screenshots:
-
-1. **Capture with encoding**: Use `puppeteer_screenshot` with `encoded: true` parameter
-2. **Generate filename**: Create descriptive filename like "jira-story-{epic}-{timestamp}-screenshot.png"
-3. **Save locally**: Write the base64 data to a PNG file in the workspace
-4. **Include in story**: Add file path and attachment instructions to story references
-5. **Inform user**: Explain how to manually attach the screenshot to the Jira issue
-
-**Example screenshot workflow:**
-
-```
-1. Capture: puppeteer_screenshot with encoded: true
-2. Save: Write base64 data to "jira-story-PROJ-100-screenshot.png"
-3. Reference: "Screenshot saved to: ./jira-story-PROJ-100-screenshot.png"
-4. Instructions: "To attach: Open Jira story → Click 'Attach' → Select the screenshot file"
-```
-
-**Screenshot Best Practices:**
-
-- Verify the URL is accessible before attempting capture
-- Allow sufficient time for page load (especially for JavaScript-heavy pages)
-- Inform the user if screenshot capture fails (some sites block headless browsers)
-- Use descriptive filenames that include Epic/story context
-- Always save screenshots locally for manual attachment
