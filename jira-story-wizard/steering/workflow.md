@@ -15,6 +15,10 @@ You may suggest additional labels based on story context, but prefer these stand
 
 **IMPORTANT**: Jira labels cannot contain spaces. Always use hyphens or underscores instead (e.g., `New-Integration` not `New Integration`).
 
+## Mode Requirement
+
+**IMPORTANT**: This entire workflow MUST be executed in chat (vibe) mode. Do NOT suggest switching to spec mode or offer to create a spec. All phases — information gathering, content analysis, story generation, review, and creation — are handled interactively in the conversation. Never prompt the user about using specs for this workflow.
+
 ## Workflow
 
 When this steering document is invoked, follow this process:
