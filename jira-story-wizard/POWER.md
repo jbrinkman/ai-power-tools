@@ -23,6 +23,10 @@ This power guides you through a structured process to gather requirements, analy
 - Support for Epic linking and custom labels
 - Consistent formatting following user story best practices
 
+## Important: Chat Mode Only
+
+This power is designed to work entirely in chat (vibe) mode. Do NOT suggest switching to spec mode or creating a spec for story creation. The interactive workflow handles all phases (gathering requirements, generating content, reviewing, and creating the story) directly in the conversation. Always stay in chat mode throughout the entire workflow.
+
 ## Available Steering Files
 
 This power includes one steering file with the detailed workflow:
