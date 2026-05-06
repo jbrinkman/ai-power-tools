@@ -295,6 +295,12 @@ STORY_EOF
 
 ### Create the work item
 
+**IMPORTANT**: Run this command exactly ONCE. Parse the issue key from the JSON
+output in the same invocation. Do NOT retry or re-run if you have trouble parsing
+the output — the story will have been created. If parsing fails, use
+`acli jira workitem search --jql "project = [KEY] ORDER BY created DESC" --limit 1`
+to find the created issue.
+
 ```bash
 acli jira workitem create \
   --project "[PROJECT_KEY]" \
@@ -304,6 +310,11 @@ acli jira workitem create \
   --label "[label1],[label2]" \
   --parent "[EPIC_KEY]" \
   --json
+```
+
+Parse the key from the JSON output using:
+```bash
+| python3 -c "import sys,json; d=json.load(sys.stdin); print(d['key'])"
 ```
 
 Flag reference:
