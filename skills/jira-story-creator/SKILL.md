@@ -1,22 +1,22 @@
 ---
 name: jira-story-creator
 description: >-
-  Create well-structured Jira stories using the Atlassian CLI (acli).
+  Create well-structured Jira stories using the Atlassian CLI (atlassian-cli).
   Use when asked to "create a Jira story", "write a user story", "add a story to Jira",
   "create a Jira ticket", "create a spike", or when the user mentions Jira issue creation,
   user stories, acceptance criteria, or epic linking via the command line.
   Guides through interactive requirements gathering, generates professional descriptions
-  with acceptance criteria, and creates stories via acli commands.
+  with acceptance criteria, and creates stories via atlassian-cli commands.
 ---
 
 <!--
 Based on the Jira Story Wizard Kiro Power by Joe Brinkman.
-Adapted to use the Atlassian CLI (acli) instead of the Jira MCP server.
+Adapted to use the Atlassian CLI (atlassian-cli) instead of acli.
 -->
 
 # Jira Story Creator
 
-Create well-structured Jira stories using the Atlassian CLI (`acli`). This skill
+Create well-structured Jira stories using the Atlassian CLI (`atlassian-cli`). This skill
 guides you through an interactive workflow: gather requirements, generate a
 professional story with acceptance criteria, review it, and create it in Jira.
 
@@ -24,44 +24,42 @@ professional story with acceptance criteria, review it, and create it in Jira.
 
 Before doing anything else, confirm the environment is ready.
 
-### 1a. Check that acli is installed
+### 1a. Check that atlassian-cli is installed
 
 Run:
 
 ```bash
-which acli
+which atlassian-cli
 ```
 
 **If the command is found** (exit code 0, prints a path): continue to 1b.
 
 **If the command is not found** (non-zero exit code or empty output):
 
-1. Tell the user that `acli` (the Atlassian CLI) is not installed or not on their PATH.
-2. Direct them to the installation guide:
-   [Atlassian CLI — Getting Started](https://developer.atlassian.com/cloud/acli/guides/how-to-get-started/)
-3. **Stop the workflow.** Do not proceed until the user confirms installation and
-   you re-verify with `which acli`.
+1. Tell the user that `atlassian-cli` is not installed or not on their PATH.
+2. **Stop the workflow.** Do not proceed until the user confirms installation and
+   you re-verify with `which atlassian-cli`.
 
 ### 1b. Check Jira authentication
 
 Run:
 
 ```bash
-acli jira auth status
+atlassian-cli auth status
 ```
 
-**If authentication succeeds** (exit code 0, output shows a logged-in account):
+**If authentication succeeds** (exit code 0, output shows a configured profile):
 proceed to Step 2.
 
-**If authentication fails** (non-zero exit code, or output contains "unauthorized",
-"not logged in", or "no authenticated"):
+**If authentication fails** (non-zero exit code, or output shows no configured profile):
 
-1. Tell the user they are not currently authenticated with Jira.
-2. Suggest they run one of the following to log in:
-   - Interactive (OAuth via browser): `acli jira auth login --web`
-   - API token: `echo <token> | acli jira auth login --site "site.atlassian.net" --email "user@example.com" --token`
+1. Tell the user they are not currently authenticated.
+2. Suggest they run:
+   ```bash
+   atlassian-cli auth login --profile work --base-url https://site.atlassian.net --email user@example.com
+   ```
 3. **Stop the workflow.** Do not proceed until the user confirms they have
-   authenticated and you re-verify with `acli jira auth status`.
+   authenticated and you re-verify with `atlassian-cli auth status`.
 
 ## Step 2: Gather Information
 
@@ -260,56 +258,83 @@ and present again.
 
 ## Step 6: Create the Story in Jira
 
-Once approved, build and execute the `acli` command.
+Once approved, build and execute the `atlassian-cli` command.
 
-### Build the description file
+### Build the description as ADF
 
-Write the full description (including User Story, all sections, Acceptance Criteria,
-and References) to a temporary file. Use plain text formatting.
+Do NOT use the `--description` flag — it only supports plain text wrapped in a
+single paragraph. Instead, use `--field 'description=<ADF_JSON>'` to pass a rich
+Atlassian Document Format (ADF) document that preserves headings, bullet lists,
+bold text, and other formatting.
 
-```bash
-cat > /tmp/jira-story-desc.txt << 'STORY_EOF'
-User Story: As a [actor], I want [action] so that [benefit]
+Construct the ADF JSON with this structure:
 
-Overview:
-[overview text]
-
-Problem/Need:
-[problem text]
-
-Proposed Solution:
-[solution text]
-
-Value/Impact:
-[impact text]
-
-Acceptance Criteria:
-- [criterion 1]
-- [criterion 2]
-- [criterion 3]
-
-References:
-- [Label]: [URL]
-STORY_EOF
+```json
+{
+  "version": 1,
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {"level": 2},
+      "content": [{"type": "text", "text": "User Story"}]
+    },
+    {
+      "type": "paragraph",
+      "content": [{"type": "text", "text": "As a [actor], I want [action] so that [benefit]"}]
+    },
+    {
+      "type": "heading",
+      "attrs": {"level": 2},
+      "content": [{"type": "text", "text": "Overview"}]
+    },
+    {
+      "type": "paragraph",
+      "content": [{"type": "text", "text": "[overview text]"}]
+    },
+    {
+      "type": "heading",
+      "attrs": {"level": 2},
+      "content": [{"type": "text", "text": "Acceptance Criteria"}]
+    },
+    {
+      "type": "bulletList",
+      "content": [
+        {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "[criterion 1]"}]}]},
+        {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "[criterion 2]"}]}]}
+      ]
+    }
+  ]
+}
 ```
 
-### Create the work item
+ADF node types to use:
 
-**IMPORTANT**: Run this command exactly ONCE. Parse the issue key from the JSON
-output in the same invocation. Do NOT retry or re-run if you have trouble parsing
-the output — the story will have been created. If parsing fails, use
-`acli jira workitem search --jql "project = [KEY] ORDER BY created DESC" --limit 1`
+| Element | ADF Type | Notes |
+|---------|----------|-------|
+| Heading | `{"type":"heading","attrs":{"level":N},"content":[...]}` | N = 1-6 |
+| Paragraph | `{"type":"paragraph","content":[...]}` | |
+| Bullet list | `{"type":"bulletList","content":[...listItems]}` | |
+| List item | `{"type":"listItem","content":[...paragraphs]}` | Must contain paragraph nodes |
+| Bold text | `{"type":"text","marks":[{"type":"strong"}],"text":"..."}` | |
+| Link | `{"type":"text","marks":[{"type":"link","attrs":{"href":"URL"}}],"text":"..."}` | |
+
+### Create the issue
+
+**IMPORTANT**: Run this command exactly ONCE. Do NOT retry or re-run if you see a
+response parsing error — the issue will have been created. If parsing fails, use
+`atlassian-cli jira issue search --jql "project = [KEY] ORDER BY created DESC" --limit 1 -f json`
 to find the created issue.
 
 ```bash
-acli jira workitem create \
+atlassian-cli jira issue create \
   --project "[PROJECT_KEY]" \
-  --type "Story" \
+  --issue-type "Story" \
   --summary "[title]" \
-  --description-file "/tmp/jira-story-desc.txt" \
-  --label "[label1],[label2]" \
-  --parent "[EPIC_KEY]" \
-  --json
+  --field 'description={"version":1,"type":"doc","content":[...ADF content...]}' \
+  --field 'labels=["label1","label2"]' \
+  --field 'parent={"key":"[EPIC_KEY]"}' \
+  -f json
 ```
 
 Parse the key from the JSON output using:
@@ -322,12 +347,20 @@ Flag reference:
 | Flag | Required | Notes |
 |------|----------|-------|
 | `--project` | Yes | Project key (e.g. `PROJ`) |
-| `--type` | Yes | Usually `Story`; use `Task` if Story is unavailable |
+| `--issue-type` | Yes | Usually `Story`; use `Task` if Story is unavailable |
 | `--summary` | Yes | The story title |
-| `--description-file` | Yes | Path to the temp description file |
-| `--label` | No | Comma-separated, no spaces in label names |
-| `--parent` | No | Epic key for linking; omit if no Epic |
-| `--json` | No | Returns JSON output for parsing the created issue key |
+| `--field 'description={...}'` | Yes | ADF JSON document for rich formatting |
+| `--field 'labels=[...]'` | No | JSON array of label strings |
+| `--field 'parent={"key":"..."}'` | No | Epic key for linking; omit if no Epic |
+| `-f json` | No | Returns JSON output for parsing the created issue key |
+
+### Expected error on mutating commands
+
+The Jira API returns HTTP 204 (No Content) for successful update and transition
+operations. The CLI may report `"Failed to parse JSON response: error decoding
+response body"` with a non-zero exit code. **This is expected and does NOT mean
+the operation failed.** Always verify the result with a subsequent `get` command
+rather than retrying the mutation.
 
 ### Handle errors
 
@@ -335,10 +368,12 @@ Flag reference:
 - **"Field 'X' is required"** — The project has custom required fields. Inform the
   user and ask for the missing values.
 - **"Invalid issue type"** — `Story` may not be available. Run
-  `acli jira workitem create --project "[KEY]" --help` to check valid types, then
+  `atlassian-cli jira issue create --help` to check valid types, then
   retry with the correct type.
 - **"Epic not found" / "parent not found"** — Verify the Epic key with
-  `acli jira workitem view [EPIC_KEY]` and retry.
+  `atlassian-cli jira issue get [EPIC_KEY]` and retry.
+- **"error decoding response body"** — See "Expected error on mutating commands"
+  above. Verify with a `get` command; do NOT retry.
 
 ### Confirm creation
 
@@ -352,14 +387,6 @@ URL: https://[site].atlassian.net/browse/[PROJ-456]
 
 Remind the user: *"Sprint assignment must be done manually in the Jira UI."*
 
-### Clean up
-
-Remove the temporary description file:
-
-```bash
-rm -f /tmp/jira-story-desc.txt
-```
-
 ### Create Valkey Integration Subtasks
 
 **Only perform this section if the user answered "yes" to Question 11.**
@@ -368,68 +395,37 @@ After the parent story is created successfully, create two subtasks:
 
 #### Subtask 1: Implementation
 
-Write a description file and create the subtask:
+Build an ADF description for the implementation subtask with scope and references,
+then create:
 
 ```bash
-cat > /tmp/jira-subtask1-desc.txt << 'STORY_EOF'
-Implement the [integration name] for [target project].
-
-Scope:
-- [Describe implementation scope based on the analysis from Step 3]
-- Submit as a PR to [target repository URL from Question 5]
-
-References:
-- [Relevant references from the parent story]
-STORY_EOF
-```
-
-```bash
-acli jira workitem create \
+atlassian-cli jira issue create \
   --project "[PROJECT_KEY]" \
-  --type "Subtask" \
+  --issue-type "Subtask" \
   --summary "Implement [short integration description]" \
-  --description-file "/tmp/jira-subtask1-desc.txt" \
-  --label "PR-Needed,New-Integration" \
-  --parent "[PARENT_STORY_KEY]" \
-  --json
+  --field 'description={"version":1,"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Scope"}]},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"[implementation scope from Step 3]"}]}]},{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Submit as a PR to [target repository URL]"}]}]}]},{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"References"}]},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","marks":[{"type":"link","attrs":{"href":"[URL]"}}],"text":"[Label]"}]}]}]}]}' \
+  --field 'labels=["PR-Needed","New-Integration"]' \
+  --field 'parent={"key":"[PARENT_STORY_KEY]"}' \
+  -f json
 ```
 
 #### Subtask 2: Cookbook Examples
 
-Write a description file and create the subtask:
+Build an ADF description for the cookbook subtask, then create:
 
 ```bash
-cat > /tmp/jira-subtask2-desc.txt << 'STORY_EOF'
-Create cookbook examples in the valkey-samples repository demonstrating [integration name].
-
-Scope:
-- Create cookbook examples showing how to use [integration]
-- Follow the cookbook framework structure in the repository
-- Submit as a PR to https://github.com/valkey-io/valkey-samples
-
-[Include any cookbook notes from Question 11 here, e.g., PR dependencies]
-
-References:
-- Valkey Samples Repository: https://github.com/valkey-io/valkey-samples
-STORY_EOF
-```
-
-```bash
-acli jira workitem create \
+atlassian-cli jira issue create \
   --project "[PROJECT_KEY]" \
-  --type "Subtask" \
+  --issue-type "Subtask" \
   --summary "Create [integration name] cookbook examples in valkey-samples" \
-  --description-file "/tmp/jira-subtask2-desc.txt" \
-  --label "PR-Needed" \
-  --parent "[PARENT_STORY_KEY]" \
-  --json
+  --field 'description={"version":1,"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Scope"}]},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Create cookbook examples showing how to use [integration]"}]}]},{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Follow the cookbook framework structure in the repository"}]}]},{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Submit as a PR to valkey-io/valkey-samples"}]}]}]},{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"References"}]},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","marks":[{"type":"link","attrs":{"href":"https://github.com/valkey-io/valkey-samples"}}],"text":"Valkey Samples Repository"}]}]}]}]}' \
+  --field 'labels=["PR-Needed"]' \
+  --field 'parent={"key":"[PARENT_STORY_KEY]"}' \
+  -f json
 ```
 
-Clean up subtask description files:
-
-```bash
-rm -f /tmp/jira-subtask1-desc.txt /tmp/jira-subtask2-desc.txt
-```
+**Note**: Subtask creation may also produce the "error decoding response body"
+message. Verify each subtask was created with a search before retrying.
 
 Present the subtask results:
 
@@ -453,14 +449,18 @@ Only create the file if the user confirms. If saving:
 - Ask whether to include the original prompt; default to excluding it.
 - Redact any secrets or PII before writing.
 
-## Quick Reference: Useful acli Commands
+## Quick Reference: Useful atlassian-cli Commands
 
 | Task | Command |
 |------|---------|
-| Check auth | `acli jira auth status` |
-| Log in (browser) | `acli jira auth login --web` |
-| List projects | `acli jira project list --limit 50` |
-| Search issues | `acli jira workitem search --jql "project = PROJ" --limit 20` |
-| View an issue | `acli jira workitem view PROJ-123` |
-| View issue (JSON) | `acli jira workitem view PROJ-123 --json` |
-| Create work item | `acli jira workitem create --project "PROJ" --type "Story" --summary "Title"` |
+| Check auth | `atlassian-cli auth status` |
+| Who am I | `atlassian-cli auth whoami` |
+| Test auth | `atlassian-cli auth test` |
+| Log in | `atlassian-cli auth login --profile work --base-url https://site.atlassian.net --email user@example.com` |
+| List projects | `atlassian-cli jira project list --limit 50` |
+| Search issues | `atlassian-cli jira issue search --project PROJ --limit 20` |
+| Search (JQL) | `atlassian-cli jira issue search --jql "project = PROJ ORDER BY created DESC"` |
+| View an issue | `atlassian-cli jira issue get PROJ-123` |
+| View issue (JSON) | `atlassian-cli jira issue get PROJ-123 -f json` |
+| Create issue | `atlassian-cli jira issue create --project PROJ --issue-type Story --summary "Title"` |
+| List fields | `atlassian-cli jira fields list` |
