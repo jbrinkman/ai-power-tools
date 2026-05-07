@@ -25,47 +25,117 @@ When this steering document is invoked, follow this process:
 
 ### Phase 1: Information Gathering
 
+**IMPORTANT**: You MUST ask every question below, one at a time, regardless of what
+the user provided in their initial prompt. Do NOT skip questions. Do NOT proceed to
+Phase 2 until every question has been explicitly answered (or answered with 'none').
+Exception: Question 2 (Project) is conditional — only ask it when the user mentions
+a different project or context suggests the default project is wrong.
+If the user provided information upfront (e.g., URLs, an Epic, a user story),
+acknowledge what you extracted but still ask the remaining questions.
+
 Collect the following information by asking questions **one at a time**:
 
 1. **Epic Link** (if not provided in initial prompt)
    - Check if the user mentioned an Epic in their initial message (e.g., "for Epic PROJ-122")
-   - If not mentioned, ask: "What Epic should this story be linked to? (e.g., PROJ-122)"
+   - If mentioned, confirm: "I see you mentioned Epic PROJ-122. I'll link the story there. Correct?"
+   - If not mentioned, ask: "What Epic should this story be linked to? (e.g., PROJ-122, or 'none')"
 
 2. **Project** (optional override)
    - Default to the user's primary project unless they specify otherwise
    - Only ask if user mentions a different project or if context suggests it
 
-3. **User Story Components**
+3. **Issue Type**
+   - Ask: "What type of work is this? (Story, Spike/Research, Bug, Task — default: Story)"
+
+4. **User Story Components**
    - If the user provided a partial story, extract the actor, action, and benefit
+   - Confirm: "I extracted this user story: 'As a [actor], I want [action], so that [benefit].' Is that correct, or would you like to adjust it?"
    - If missing components, ask for them to complete: "As a [actor], I want [action] so that [benefit]"
 
-4. **GitHub Repository URL** (optional)
-   - Ask: "What is the GitHub repository URL? (or 'none' if not applicable)"
+5. **GitHub Repository URL**
+   - Ask: "What is the GitHub repository URL for this work? (or 'none')"
+   - If the user already provided a repo URL, confirm: "I see you provided [URL] — is this the primary repository? Any others?"
    - Label this as "Project Repository" in references
 
-5. **Documentation URL** (optional)
-   - Ask: "What is the documentation URL? (or 'none' if not applicable)"
-   - Label this as "Documentation" in references
+6. **Documentation URLs**
+   - Ask: "Are there documentation pages I should review for context? (provide URLs or 'none')"
+   - If the user already provided doc URLs, ask: "I see you provided [URLs]. Are there any additional documentation pages I should review?"
+   - Label these as "Documentation" in references
 
-6. **Additional Reference URLs** (optional)
-   - Ask: "Any additional reference URLs? Provide them with labels (e.g., 'API Guide: https://...' or 'none')"
+7. **Additional Reference URLs**
+   - Ask: "Any other reference URLs I should review? (e.g., API docs, design specs, RFCs, competitor examples — provide with labels or 'none')"
 
-7. **Additional Context** (optional)
-   - Ask: "Any additional context or requirements I should know about? (or 'none')"
+8. **Technical Constraints**
+   - Ask: "Are there specific technical constraints I should know about? (e.g., must use a specific API, language requirements, architectural patterns, or 'none')"
+
+9. **Dependencies**
+   - Ask: "Does this work depend on or block any other stories/work? (provide issue keys or describe, or 'none')"
+
+10. **Additional Context**
+    - Ask: "Any other context, requirements, or non-functional concerns (performance, security, accessibility) I should factor in? (or 'none')"
+
+#### Checkpoint
+
+After all questions are answered, present a brief summary of what you collected:
+
+```text
+Here's what I have so far:
+- Epic: [value]
+- Project: [value]
+- Type: [value]
+- User Story: As a [actor], I want [action], so that [benefit]
+- Repository: [value or none]
+- Documentation: [URLs or none]
+- References: [URLs or none]
+- Technical Constraints: [value or none]
+- Dependencies: [value or none]
+- Additional Context: [value or none]
+
+Does this look complete, or is there anything you'd like to add or change before I
+analyze the content and draft the story?
+```
+
+**Do NOT proceed to Phase 2 until the user confirms the summary.**
 
 ### Phase 2: Content Analysis
 
+**IMPORTANT**: Do NOT begin generating the story (Phase 3) until this phase is fully
+complete. All URLs must be fetched and analyzed first.
+
 After gathering all information:
 
-1. **Fetch and analyze URLs** (if provided)
+1. **Fetch and analyze ALL URLs** using the Jina Reader proxy for cleaner, more
+   complete content extraction:
+   - Fetch `https://r.jina.ai/<url>` using web_fetch in full mode
+   - This returns clean markdown optimized for LLM consumption, with navigation,
+     ads, and boilerplate removed
    - Review GitHub repository for project description and technical details
    - Review documentation for features, architecture, and integration points
    - Review additional references for specific context
 
-2. **Synthesize information** to understand:
+2. **For each fetched page, extract:**
+   - Project purpose and scope
+   - Technical architecture and stack
+   - Relevant features and integration points
+   - Any constraints or requirements mentioned
+   - **Key linked pages** that may contain deeper relevant context (e.g., API
+     references, architecture docs, getting-started guides)
+
+3. **Deep analysis** — If the fetched content references important sub-pages that
+   would provide critical context for the story (e.g., a docs homepage links to
+   an API reference or architecture overview), ask the user:
+   *"I found these potentially relevant linked pages: [list]. Should I review any
+   of them for additional context?"*
+   Fetch and analyze any pages the user confirms (also via Jina Reader).
+
+4. **Synthesize information** to understand:
    - The project's purpose and capabilities
    - Technical architecture and integration opportunities
    - User needs and expected benefits
+   - How technical constraints and dependencies factor in
+
+5. **If the fetched content reveals ambiguity or raises new questions** not covered
+   in Phase 1, ask the user for clarification BEFORE proceeding to Phase 3.
 
 ### Phase 3: Story Generation
 
