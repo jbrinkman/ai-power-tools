@@ -329,7 +329,7 @@ to find the created issue.
 ```bash
 atlassian-cli jira issue create \
   --project "[PROJECT_KEY]" \
-  --issue-type "Story" \
+  --issue-type "[ISSUE_TYPE]" \
   --summary "[title]" \
   --field 'description={"version":1,"type":"doc","content":[...ADF content...]}' \
   --field 'labels=["label1","label2"]' \

@@ -12,13 +12,13 @@ All commands support `-f <FORMAT>` (table, json, yaml, csv, quiet, markdown) and
 
 Create a new page.
 
-```
+```bash
 atlassian-cli confluence page create [OPTIONS] --space <SPACE> --title <TITLE>
 ```
 
 | Flag | Required | Description |
 |------|----------|-------------|
-| `--space` | Yes | Space ID |
+| `--space` | Yes | Space key |
 | `--title` | Yes | Page title |
 | `--body` | No | Path to body content file (HTML storage format) |
 | `--parent` | No | Parent page ID |
@@ -62,7 +62,7 @@ rm -f /tmp/page-content.html
 
 Update an existing page.
 
-```
+```bash
 atlassian-cli confluence page update [OPTIONS] <PAGE_ID>
 ```
 
@@ -96,7 +96,7 @@ atlassian-cli confluence page update 123456789 --status draft
 
 Publish a draft page for the first time.
 
-```
+```bash
 atlassian-cli confluence page publish [OPTIONS] --body <BODY> <PAGE_ID>
 ```
 
@@ -123,7 +123,7 @@ atlassian-cli confluence page publish 123456789 --body ./content.html --title "F
 
 Delete a page.
 
-```
+```bash
 atlassian-cli confluence page delete [OPTIONS] <PAGE_ID>
 ```
 
@@ -148,7 +148,7 @@ atlassian-cli confluence page delete 123456789 --force
 
 Add a label to a page.
 
-```
+```bash
 atlassian-cli confluence page add-label [OPTIONS] <PAGE_ID> <LABEL>
 ```
 
@@ -170,7 +170,7 @@ atlassian-cli confluence page add-label 123456789 architecture
 
 Remove a label from a page.
 
-```
+```bash
 atlassian-cli confluence page remove-label [OPTIONS] <PAGE_ID> <LABEL>
 ```
 
@@ -191,7 +191,7 @@ atlassian-cli confluence page remove-label 123456789 outdated
 
 Add a comment to a page.
 
-```
+```bash
 atlassian-cli confluence page add-comment [OPTIONS] <PAGE_ID> <COMMENT>
 ```
 
@@ -212,7 +212,7 @@ atlassian-cli confluence page add-comment 123456789 "Reviewed and approved"
 
 Add a restriction to a page.
 
-```
+```bash
 atlassian-cli confluence page add-restriction [OPTIONS] --operation <OPERATION> --subject-type <SUBJECT_TYPE> --subject-id <SUBJECT_ID> <PAGE_ID>
 ```
 
@@ -239,7 +239,7 @@ atlassian-cli confluence page add-restriction 123456789 --operation read --subje
 
 Remove a restriction from a page.
 
-```
+```bash
 atlassian-cli confluence page remove-restriction [OPTIONS] --operation <OPERATION> --subject-type <SUBJECT_TYPE> --subject-id <SUBJECT_ID> <PAGE_ID>
 ```
 

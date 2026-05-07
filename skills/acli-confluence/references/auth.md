@@ -8,7 +8,7 @@ Authentication is shared across all atlassian-cli services (Jira, Confluence, Bi
 
 Create or update a profile with credentials.
 
-```
+```bash
 atlassian-cli auth login --profile <PROFILE> --base-url <URL> --email <EMAIL> --token <TOKEN>
 ```
 
@@ -39,7 +39,7 @@ atlassian-cli auth login --profile work --base-url https://mysite.atlassian.net 
 
 Show authentication status for all services.
 
-```
+```bash
 atlassian-cli auth status [OPTIONS]
 ```
 
@@ -61,7 +61,7 @@ atlassian-cli auth status --profile work --configured-only
 
 Show current user information.
 
-```
+```bash
 atlassian-cli auth whoami [OPTIONS]
 ```
 
@@ -82,7 +82,7 @@ atlassian-cli auth whoami --profile work -f json
 
 Test authentication for a profile.
 
-```
+```bash
 atlassian-cli auth test [OPTIONS]
 ```
 
@@ -103,7 +103,7 @@ atlassian-cli auth test --profile work
 
 List configured profiles.
 
-```
+```bash
 atlassian-cli auth list [OPTIONS]
 ```
 
@@ -124,7 +124,7 @@ atlassian-cli auth list --all -f json
 
 Remove stored credentials for a profile.
 
-```
+```bash
 atlassian-cli auth logout --profile <PROFILE>
 ```
 

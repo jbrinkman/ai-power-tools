@@ -8,7 +8,7 @@ All commands support `-f <FORMAT>` (table, json, yaml, csv, quiet, markdown) and
 
 Get page details by ID.
 
-```
+```bash
 atlassian-cli confluence page get [OPTIONS] <PAGE_ID>
 ```
 
@@ -36,7 +36,7 @@ atlassian-cli confluence page get 123456789 --body-only
 
 List pages, optionally filtered by space.
 
-```
+```bash
 atlassian-cli confluence page list [OPTIONS]
 ```
 
@@ -64,7 +64,7 @@ atlassian-cli confluence page list --space DOCS --limit 50 -f json
 
 List version history for a page.
 
-```
+```bash
 atlassian-cli confluence page versions [OPTIONS] <PAGE_ID>
 ```
 
@@ -85,7 +85,7 @@ atlassian-cli confluence page versions 123456789 -f json
 
 List comments on a page.
 
-```
+```bash
 atlassian-cli confluence page comments [OPTIONS] <PAGE_ID>
 ```
 
@@ -106,7 +106,7 @@ atlassian-cli confluence page comments 123456789 -f json
 
 Get restrictions on a page.
 
-```
+```bash
 atlassian-cli confluence page get-restrictions [OPTIONS] <PAGE_ID>
 ```
 
@@ -126,7 +126,7 @@ atlassian-cli confluence page get-restrictions 123456789
 
 List spaces.
 
-```
+```bash
 atlassian-cli confluence space list [OPTIONS]
 ```
 
@@ -154,7 +154,7 @@ atlassian-cli confluence space list --limit 50 -f json
 
 Get space details by key.
 
-```
+```bash
 atlassian-cli confluence space get [OPTIONS] <KEY>
 ```
 
@@ -175,7 +175,7 @@ atlassian-cli confluence space get DOCS -f json
 
 Search using Confluence Query Language.
 
-```
+```bash
 atlassian-cli confluence search cql [OPTIONS] <QUERY>
 ```
 
@@ -203,7 +203,7 @@ atlassian-cli confluence search cql 'lastModified > now("-7d") AND type = page' 
 
 Full text search across all content.
 
-```
+```bash
 atlassian-cli confluence search text [OPTIONS] <QUERY>
 ```
 
@@ -225,7 +225,7 @@ atlassian-cli confluence search text 'project update' --limit 20 -f json
 
 Search within a specific space.
 
-```
+```bash
 atlassian-cli confluence search in-space [OPTIONS] <SPACE> <QUERY>
 ```
 
@@ -248,7 +248,7 @@ atlassian-cli confluence search in-space DOCS 'api reference' --limit 10 -f json
 
 Search using filter parameters (builds CQL internally).
 
-```
+```bash
 atlassian-cli confluence search params [OPTIONS]
 ```
 

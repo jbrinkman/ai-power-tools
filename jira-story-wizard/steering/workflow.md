@@ -28,6 +28,8 @@ When this steering document is invoked, follow this process:
 **IMPORTANT**: You MUST ask every question below, one at a time, regardless of what
 the user provided in their initial prompt. Do NOT skip questions. Do NOT proceed to
 Phase 2 until every question has been explicitly answered (or answered with 'none').
+Exception: Question 2 (Project) is conditional — only ask it when the user mentions
+a different project or context suggests the default project is wrong.
 If the user provided information upfront (e.g., URLs, an Epic, a user story),
 acknowledge what you extracted but still ask the remaining questions.
 
