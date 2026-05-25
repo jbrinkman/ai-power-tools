@@ -11,7 +11,7 @@ Interactive wizard for creating well-structured Jira stories with user story bes
 **Installation:**
 
 ```
-https://github.com/jbrinkman/ai-power-tools/powers/jira-story-wizard
+https://github.com/jbrinkman/ai-power-tools/jira-story-wizard
 ```
 
 **Features:**
@@ -34,7 +34,7 @@ Evaluate Valkey integration narratives in Confluence against standard criteria. 
 **Installation:**
 
 ```
-https://github.com/jbrinkman/ai-power-tools/powers/review-valkey-narrative
+https://github.com/jbrinkman/ai-power-tools/review-valkey-narrative
 ```
 
 **Features:**
@@ -57,7 +57,7 @@ Read-only Atlassian integration for gathering requirements from Jira issues (inc
 **Installation:**
 
 ```
-https://github.com/jbrinkman/ai-power-tools/powers/atlassian-spec-reviewer
+https://github.com/jbrinkman/ai-power-tools/atlassian-spec-reviewer
 ```
 
 **Features:**
@@ -85,23 +85,22 @@ https://github.com/jbrinkman/ai-power-tools/powers/atlassian-spec-reviewer
 
 ```
 ai-power-tools/
-├── powers/
-│   ├── atlassian-spec-reviewer/
-│   │   ├── POWER.md
-│   │   ├── mcp.json
-│   │   └── steering/
-│   │       ├── code-review-workflow.md
-│   │       ├── implementation-workflow.md
-│   │       └── requirements-gathering.md
-│   ├── jira-story-wizard/
-│   │   ├── POWER.md
-│   │   ├── mcp.json
-│   │   ├── Jira-Wizard.png
-│   │   └── steering/
-│   │       └── workflow.md
-│   └── review-valkey-narrative/
-│       ├── POWER.md
-│       └── mcp.json
+├── atlassian-spec-reviewer/
+│   ├── POWER.md
+│   ├── mcp.json
+│   └── steering/
+│       ├── code-review-workflow.md
+│       ├── implementation-workflow.md
+│       └── requirements-gathering.md
+├── jira-story-wizard/
+│   ├── POWER.md
+│   ├── mcp.json
+│   ├── Jira-Wizard.png
+│   └── steering/
+│       └── workflow.md
+├── review-valkey-narrative/
+│   ├── POWER.md
+│   └── mcp.json
 ├── CHANGELOG.md
 ├── LICENSE
 └── README.md
