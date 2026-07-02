@@ -1,5 +1,5 @@
 ---
-name: acli-confluence
+name: confluence-cli
 description: >-
   Work with Confluence pages using the atlassian-cli.
   Use when asked to "read a confluence page", "create a page", "update a page",
