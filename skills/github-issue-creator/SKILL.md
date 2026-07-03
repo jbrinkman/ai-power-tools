@@ -195,6 +195,10 @@ Does this look complete, or would you like to add or change anything?
 4. Synthesize findings into a coherent understanding of what the issue needs
    to communicate.
 
+5. **Preserve every URL exactly.** Keep a complete list of every URL the user
+   provided. Every one of them MUST appear verbatim in the References section
+   of the generated issue. Do not omit, summarize, or paraphrase any URL.
+
 ## Step 5: Generate the Issue
 
 Compose the issue using either the user's template/guidelines or the default
@@ -218,7 +222,9 @@ Structure with these sections:
 - **Proposed Solution**: How this could be solved (3-4 sentences)
 - **Value/Impact**: Expected benefits (2-3 sentences)
 - **Acceptance Criteria**: 3-5 specific, testable criteria as a task list
-- **References**: Links with descriptive labels
+- **References**: Every URL the user provided, listed verbatim with descriptive
+  labels. **Do not omit any URL.** If the user provided multiple links, every
+  one must appear here exactly as given.
 
 Format acceptance criteria as GitHub task lists:
 
