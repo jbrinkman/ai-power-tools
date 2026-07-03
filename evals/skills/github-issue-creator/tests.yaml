@@ -1,0 +1,134 @@
+# Per-skill test cases for github-issue-creator.
+# These tests reference the source skill file directly so the prompt under test
+# always matches the skill definition.
+- description: Step 1a — gh not authenticated
+  metadata:
+    skill: github-issue-creator
+  vars:
+    request: "Create an issue in test-org/test-repo to add dark mode support."
+    authFail: true
+  assert:
+    - type: contains
+      value: gh auth login
+    - type: contains
+      value: authenticate
+    - type: javascript
+      value: file://assertions/ghCommandCalled.js
+      config:
+        expectedCommand: auth status
+
+- description: Step 1b — repo not found or no access
+  metadata:
+    skill: github-issue-creator
+  vars:
+    request: "Create an issue in test-org/test-repo to add dark mode support."
+    repoFail: true
+  assert:
+    - type: contains
+      value: repository
+    - type: contains
+      value: not found
+    - type: contains
+      value: verify
+    - type: javascript
+      value: file://assertions/ghCommandCalled.js
+      config:
+        expectedCommand: repo view
+
+- description: Minimal feature request
+  metadata:
+    skill: github-issue-creator
+  vars:
+    request: "Create a feature request in test-org/test-repo to add dark mode support."
+  assert:
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "Repository access confirmed"
+          - "Issue created"
+          - "User Story"
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "create"
+          - "issue"
+          - "Feature request"
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "template or guidelines"
+          - "Issue created"
+          - "Acceptance Criteria"
+    - type: javascript
+      value: file://assertions/ghCommandCalled.js
+      config:
+        expectedCommand: repo view
+
+- description: Bug report with references and constraints
+  metadata:
+    skill: github-issue-creator
+  vars:
+    request: >
+      File a bug report in test-org/test-repo. The checkout page crashes when a
+      discount code is applied. Reference https://example.com/checkout-docs and
+      https://github.com/test-org/test-repo/issues/7. The fix must be backward
+      compatible with the v1 API and include regression tests.
+  assert:
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "proposed GitHub issue"
+          - "Issue created"
+          - "Here's what I have"
+          - "summary of what I have"
+          - "Repository access confirmed"
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "References"
+          - "reference links"
+          - "reference URLs"
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "backward compatible"
+          - "backward-compatible"
+          - "backward compatibility"
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "Constraints"
+          - "constraint"
+          - "regression test"
+          - "acceptance criteria"
+          - "Acceptance Criteria"
+    - type: contains
+      value: "https://github.com/test-org/test-repo/issues/7"
+
+- description: Update existing issue
+  metadata:
+    skill: github-issue-creator
+  vars:
+    request: "Update issue #42 in test-org/test-repo to reflect the new API rate limiting requirements."
+    expectedIssue: 42
+  assert:
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "issue #42"
+          - "existing issue"
+          - "update"
+    - type: contains
+      value: "rate limiting"
+    - type: javascript
+      value: file://assertions/ghCommandCalled.js
+      config:
+        expectedCommand: "issue view 42"

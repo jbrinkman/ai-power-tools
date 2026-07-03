@@ -1,0 +1,134 @@
+#!/bin/bash
+# Mock gh CLI for testing the github-issue-creator skill.
+# This script intercepts gh commands and returns scenario-driven responses.
+# It logs every invocation so JavaScript assertions can verify tool usage.
+
+LOG_FILE="${GH_MOCK_LOG_FILE:-$(dirname "$0")/../tmp/promptfoo-gh-mock.log}"
+mkdir -p "$(dirname "$LOG_FILE")"
+
+# Log the command (timestamp, args, and relevant env vars).
+{
+  echo "---"
+  date -u +"%Y-%m-%dT%H:%M:%SZ"
+  echo "args: $*"
+  echo "repo: ${PROMPTFOO_VAR_expectedRepo:-}"
+  echo "issue: ${PROMPTFOO_VAR_expectedIssue:-}"
+  echo "scenario: ${PROMPTFOO_VAR_scenario:-default}"
+} >> "$LOG_FILE"
+
+# Helper to extract the repo from the command line.
+# Handles both --repo <owner/repo> and positional forms (e.g., gh repo view <repo>).
+get_repo() {
+  local next=0
+  for arg in "$@"; do
+    if [[ "$next" == "1" ]]; then
+      echo "$arg"
+      return
+    fi
+    if [[ "$arg" == "--repo" ]]; then
+      next=1
+    fi
+  done
+  # If no --repo flag, treat the third positional argument as the repo for repo view.
+  if [[ "$1" == "repo" && "$2" == "view" && -n "${3:-}" && "${3:-}" != "--"* ]]; then
+    echo "$3"
+  fi
+}
+
+# Helper to determine the effective scenario.
+# Priority:
+#   1. explicit PROMPTFOO_VAR_scenario
+#   2. auth failure if requested
+#   3. repo access failure if requested
+#   4. default happy path
+scenario="${PROMPTFOO_VAR_scenario:-default}"
+if [[ "$scenario" == "default" && "${PROMPTFOO_VAR_authFail:-}" == "true" ]]; then
+  scenario="auth-fail"
+fi
+if [[ "$scenario" == "default" && "${PROMPTFOO_VAR_repoFail:-}" == "true" ]]; then
+  scenario="repo-fail"
+fi
+
+# Determine the repo from the command line if present.
+repo=$(get_repo "$@")
+if [[ -z "$repo" && -n "${PROMPTFOO_VAR_expectedRepo:-}" ]]; then
+  repo="${PROMPTFOO_VAR_expectedRepo}"
+fi
+
+# Determine the issue number if present.
+issue_num="${PROMPTFOO_VAR_expectedIssue:-}"
+for arg in "$@"; do
+  if [[ "$arg" =~ ^[0-9]+$ ]]; then
+    issue_num="$arg"
+    break
+  fi
+done
+
+# Handle subcommands.
+case "$1" in
+  auth)
+    if [[ "$2" == "status" ]]; then
+      if [[ "$scenario" == "auth-fail" ]]; then
+        echo "You are not logged into any GitHub hosts. Run gh auth login to authenticate." >&2
+        exit 1
+      fi
+      echo "✓ Logged in to github.com as test-user (/Users/test/.config/gh/hosts.yml)"
+      echo "✓ Git operations for github.com configured to use https protocol."
+      exit 0
+    fi
+    ;;
+
+  repo)
+    if [[ "$2" == "view" ]]; then
+      if [[ "$scenario" == "repo-fail" ]]; then
+        echo "HTTP 404: Not Found (https://api.github.com/repos/$repo)" >&2
+        exit 1
+      fi
+      echo '{"name":"test-repo","owner":{"login":"test-org"}}'
+      exit 0
+    fi
+    ;;
+
+  issue)
+    if [[ "$2" == "view" ]]; then
+      if [[ "$issue_num" == "42" ]]; then
+        echo '{"title":"Existing issue title","body":"Existing issue body.","labels":[{"name":"bug"}],"assignees":[],"milestone":null}'
+      else
+        echo "HTTP 404: Not Found (https://api.github.com/repos/$repo/issues/$issue_num)" >&2
+        exit 1
+      fi
+      exit 0
+    fi
+
+    if [[ "$2" == "create" ]]; then
+      echo "https://github.com/$repo/issues/101"
+      exit 0
+    fi
+
+    if [[ "$2" == "edit" ]]; then
+      echo "https://github.com/$repo/issues/$issue_num"
+      exit 0
+    fi
+    ;;
+
+  label)
+    if [[ "$2" == "list" ]]; then
+      echo '[{"name":"bug"},{"name":"enhancement"},{"name":"documentation"}]'
+      exit 0
+    fi
+    ;;
+
+  api)
+    # Handle: gh api repos/owner/repo/milestones --jq '.[].title'
+    if [[ "$*" == *"milestones"* ]]; then
+      echo "v1.0.0"
+      echo "v1.1.0"
+      exit 0
+    fi
+    ;;
+esac
+
+# Unknown command: log and return a generic error.
+echo "mock gh: unhandled command: $*" >&2
+echo "mock gh: unhandled command: $*" >> "$LOG_FILE"
+exit 1
