@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+# Master Promptfoo config for evaluating ai-power-tools skills.
+# This config loads a skill file dynamically and runs per-skill test suites.
+
+description: ai-power-tools skills evaluation framework
+
+# The prompt loads the skill file and appends the user request.
+# The skillFile variable is set per skill in the imported test file.
+prompts:
+  - "@{{skillFile}}\n\n## User Request\n\n{{request}}"
+
+# Default test vars and grader configuration used for all tests.
+defaultTest:
+  vars:
+    skillFile: ../../skills/github-issue-creator/SKILL.md
+    expectedRepo: test-org/test-repo
+  options:
+    provider: "exec: node ./providers/devin.js"
+    config:
+      model: "swe-1.6"
+
+# Target provider that executes the skill.
+providers:
+  - id: "exec: node ./providers/devin.js"
+    label: "Devin claude-sonnet-4.6"
+    config:
+      model: "claude-sonnet-4.6"
+
+# Per-skill test files are imported here. Add new skills by adding their
+# tests.yaml file below.
+tests:
+  - file://skills/github-issue-creator/tests.yaml
+
+outputPath: results.html

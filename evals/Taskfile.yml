@@ -1,0 +1,44 @@
+version: "3"
+
+vars:
+  GH_MOCK_LOG_FILE: tmp/promptfoo-gh-mock.log
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  eval:github-issue-creator:
+    desc: Evaluate the github-issue-creator skill
+    cmds:
+      - "mkdir -p tmp"
+      - "rm -f {{.GH_MOCK_LOG_FILE}}"
+      - "npx promptfoo eval --no-cache --config promptfooconfig.yaml --filter-metadata skill=github-issue-creator --delay 0"
+    env:
+      GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
+
+  eval:all:
+    desc: Evaluate all skills
+    cmds:
+      - "mkdir -p tmp"
+      - "rm -f {{.GH_MOCK_LOG_FILE}}"
+      - "npx promptfoo eval --no-cache --config promptfooconfig.yaml --delay 0"
+    env:
+      GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
+
+  view:
+    desc: Open the Promptfoo dashboard with all evaluation history
+    cmds:
+      - "npx promptfoo view"
+
+  view:last:
+    desc: Open the latest evaluation results in the default browser
+    cmds:
+      - "open results.html"
+
+  clean:
+    desc: Remove evaluation artifacts and mock logs
+    cmds:
+      - "rm -rf tmp"
+      - "rm -f results.html"
