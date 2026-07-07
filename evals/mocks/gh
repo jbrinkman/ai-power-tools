@@ -69,11 +69,15 @@ case "$1" in
   auth)
     if [[ "$2" == "status" ]]; then
       if [[ "$scenario" == "auth-fail" ]]; then
-        echo "You are not logged into any GitHub hosts. Run gh auth login to authenticate." >&2
+        echo "You are not logged into any GitHub hosts. To log in, run: gh auth login" >&2
         exit 1
       fi
-      echo "✓ Logged in to github.com as test-user (/Users/test/.config/gh/hosts.yml)"
-      echo "✓ Git operations for github.com configured to use https protocol."
+      echo "github.com"
+      echo "  ✓ Logged in to github.com account test-user (keyring)"
+      echo "  - Active account: true"
+      echo "  - Git operations protocol: https"
+      echo "  - Token: gho_************************************"
+      echo "  - Token scopes: 'gist', 'read:org', 'repo', 'workflow'"
       exit 0
     fi
     ;;
