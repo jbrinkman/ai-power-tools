@@ -1,9 +1,11 @@
 #!/bin/bash
 # Mock gh CLI for testing the github-issue-creator skill.
 # This script intercepts gh commands and returns scenario-driven responses.
-# It logs every invocation so JavaScript assertions can verify tool usage.
-
-LOG_FILE="${GH_MOCK_LOG_FILE:-$(dirname "$0")/../tmp/promptfoo-gh-mock.log}"
+# It logs every invocation to $GH_MOCK_LOG_FILE, a private log file that
+# evals/providers/devin.js creates fresh for each test invocation and embeds
+# into the provider output afterward. There is no shared/persistent log file
+# to collide across tests, so GH_MOCK_LOG_FILE is required.
+LOG_FILE="${GH_MOCK_LOG_FILE:?GH_MOCK_LOG_FILE is not set. This mock must be invoked via evals/providers/devin.js, which sets a private log file per test run.}"
 mkdir -p "$(dirname "$LOG_FILE")"
 
 # Log the command (timestamp, args, and relevant env vars).

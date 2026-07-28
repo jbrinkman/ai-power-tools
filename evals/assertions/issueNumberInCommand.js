@@ -1,3 +1,5 @@
+const { extractMockLog } = require('../lib/mockLog');
+
 module.exports = (output, context) => {
   const expectedIssue = context?.vars?.expectedIssue;
   if (!expectedIssue) {
@@ -8,13 +10,15 @@ module.exports = (output, context) => {
     };
   }
 
-  // Match gh issue edit <number>.
-  const matches = output.match(/gh issue edit\s+(\d+)/);
+  const log = extractMockLog(output);
+
+  // Match `issue edit <number>` invocations recorded by the gh mock.
+  const matches = log.match(/^args:\s*issue edit\s+(\d+)/m);
   if (!matches) {
     return {
       pass: false,
       score: 0,
-      reason: 'No gh issue edit <number> command found in the output',
+      reason: 'No gh issue edit <number> command found in the mock gh log',
     };
   }
 

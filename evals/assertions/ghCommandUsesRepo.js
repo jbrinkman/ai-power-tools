@@ -1,3 +1,5 @@
+const { extractMockLog } = require('../lib/mockLog');
+
 module.exports = (output, context) => {
   const expectedRepo = context?.vars?.expectedRepo;
   if (!expectedRepo) {
@@ -8,13 +10,16 @@ module.exports = (output, context) => {
     };
   }
 
-  // Match gh issue create or gh issue edit commands with --repo flag.
-  const matches = output.match(/gh issue (?:create|edit)(?:\s+\d+)?[\s\S]*?--repo\s+["']?([^"'\s]+)["']?/);
+  const log = extractMockLog(output);
+
+  // Match `issue create`/`issue edit` invocations recorded by the gh mock
+  // (logged as `args: issue create --repo ...`) with a --repo flag.
+  const matches = log.match(/^args:\s*issue (?:create|edit)(?:\s+\d+)?[\s\S]*?--repo\s+["']?([^"'\s]+)["']?/m);
   if (!matches) {
     return {
       pass: false,
       score: 0,
-      reason: 'No well-formed gh issue create/edit command with --repo found in the output',
+      reason: 'No gh issue create/edit command with --repo found in the mock gh log',
     };
   }
 

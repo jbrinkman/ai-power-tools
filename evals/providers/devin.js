@@ -9,7 +9,10 @@
 // skill under test does not touch the real GitHub CLI.
 
 const { spawnSync } = require('child_process');
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { wrapMockLog } = require('../lib/mockLog');
 
 const prompt = process.argv[2];
 const options = process.argv[3];
@@ -53,10 +56,17 @@ try {
   // Not JSON, so provider mode.
 }
 
-// Build environment. In provider mode, prepend the mock gh directory to PATH.
+// Build environment. In provider mode, prepend the mock gh directory to PATH
+// and give the mock a private log file for this invocation only, so its
+// recorded commands can never collide with another test's log.
 const env = { ...process.env };
+let mockLogDir = null;
+let mockLogFile = null;
 if (!isGraderMode) {
   env.PATH = `${mockGhDir}:${env.PATH}`;
+  mockLogDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gh-mock-'));
+  mockLogFile = path.join(mockLogDir, 'gh-mock.log');
+  env.GH_MOCK_LOG_FILE = mockLogFile;
   // Forward test vars to the mock gh script as env vars with a prefix.
   Object.entries(testVars).forEach(([key, value]) => {
     env[`PROMPTFOO_VAR_${key}`] = String(value);
@@ -125,5 +135,16 @@ if (isGraderMode) {
     process.exit(result.status || 1);
   }
 
-  console.log(result.stdout);
+  // Fold the mock's recorded gh invocations into the output so assertions
+  // can read them directly instead of re-locating a shared log file on disk.
+  let mockLog = '';
+  try {
+    mockLog = fs.readFileSync(mockLogFile, 'utf8');
+  } catch (e) {
+    // The mock was never invoked; leave the embedded log block empty.
+  } finally {
+    fs.rmSync(mockLogDir, { recursive: true, force: true });
+  }
+
+  console.log(result.stdout + wrapMockLog(mockLog));
 }

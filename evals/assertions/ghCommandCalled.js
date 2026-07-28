@@ -1,7 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-
-const LOG_FILE = process.env.GH_MOCK_LOG_FILE || path.resolve(__dirname, '../tmp/promptfoo-gh-mock.log');
+const { extractMockLog } = require('../lib/mockLog');
 
 module.exports = (output, context) => {
   const expectedCommand = context?.config?.expectedCommand || context?.vars?.expectedCommand;
@@ -13,29 +10,12 @@ module.exports = (output, context) => {
     };
   }
 
-  let log = '';
-  let attempts = 0;
-  while (attempts < 3) {
-    try {
-      log = fs.readFileSync(LOG_FILE, 'utf8');
-      if (log.includes(expectedCommand)) {
-        break;
-      }
-    } catch (e) {
-      // Log may not exist yet; retry.
-    }
-    attempts++;
-    if (attempts < 3) {
-      // Wait briefly for concurrent writes to complete.
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
-    }
-  }
-
-  if (log === '') {
+  const log = extractMockLog(output);
+  if (!log) {
     return {
       pass: false,
       score: 0,
-      reason: `Could not read mock gh log at ${LOG_FILE}`,
+      reason: 'No gh mock log found embedded in provider output (the mock gh was never invoked, or the provider failed before it could embed the log)',
     };
   }
 
