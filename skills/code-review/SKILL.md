@@ -225,7 +225,10 @@ For each finding, present the following to the user:
 - **Category**: Which checklist area it falls under (correctness, performance, security, etc.)
 - **Finding**: A clear description of the problem
 - **Suggested comment**: The single best recommendation. Commit to one clear action — do not
-  present multiple options joined by "or" / "alternatively" / "either...or". This is the exact
+  present multiple options joined by "or" / "alternatively" / "either...or". Also do not embed
+  conditional alternatives disguised as context (e.g., "Do X. If you plan to do Y later, then
+  do Z instead.") — any sentence that gives the reader a choice between actions is an option,
+  regardless of framing. The comment must read as one unambiguous directive. This is the exact
   text that would be posted as a review comment if the user chooses "Post".
 - **Alternate suggestions** (optional): If other viable approaches exist, list them here as
   brief bullet points. These are shown only to help the user decide whether to edit the
