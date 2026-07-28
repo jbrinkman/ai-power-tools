@@ -69,9 +69,13 @@ Status: **implemented, pending a live `task eval:github-issue-creator` run to co
       `mkdir -p tmp` was also removed since nothing writes there anymore.
 - [x] `evals/README.md`: updated the structure diagram and "How it works" section to describe the
       new embedded-trace mechanism instead of the shared log file.
-- [x] Decision: kept `vars.testId` in `tests.yaml` as-is (harmless, no longer technically required
-      by the mock mechanism, but still useful as a human-readable test label). No change needed to
-      `tests.yaml`.
+- [x] Decision (revised 2026-07-28): `vars.testId` was removed from all 5 tests in `tests.yaml`.
+      It was fully vestigial after the refactor above — nothing in `mocks/gh`, `providers/devin.js`,
+      or any assertion reads it anymore, and its only claimed value (a human-readable label) was
+      already redundant with each test's `description` field. Originally the plan was to keep it as
+      a harmless cosmetic label, but on reflection that leaves dead config in place that could
+      mislead a future reader into thinking it's wired to something — inconsistent with this
+      project's own load-bearing standard, so it was removed instead.
 - [x] Verified the mechanism directly (without a live Devin session, since this sandbox's `devin`
       CLI is not authenticated — `Error: Not logged in. Run devin auth login to authenticate.`):
   - `bash -n` / `node -c` syntax-checked every changed file.
