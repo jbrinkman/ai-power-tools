@@ -47,7 +47,7 @@
             id: "exec: node ./providers/devin.js"
             config:
               model: "swe-1.6"
-          value: >
+          value: &repoFailureRubric >
             The response clearly communicates that the target repository was not found or that
             the user does not have access to it, AND asks the user to verify the repository name
             and/or their permissions.
@@ -57,20 +57,14 @@
             id: "exec: node ./providers/devin.js"
             config:
               model: "codex"
-          value: >
-            The response clearly communicates that the target repository was not found or that
-            the user does not have access to it, AND asks the user to verify the repository name
-            and/or their permissions.
+          value: *repoFailureRubric
         - type: llm-rubric
           metric: judge_gemini
           provider:
             id: "exec: node ./providers/devin.js"
             config:
               model: "gemini-3.5-flash"
-          value: >
-            The response clearly communicates that the target repository was not found or that
-            the user does not have access to it, AND asks the user to verify the repository name
-            and/or their permissions.
+          value: *repoFailureRubric
     - type: javascript
       value: file://assertions/ghCommandCalled.js
       config:
