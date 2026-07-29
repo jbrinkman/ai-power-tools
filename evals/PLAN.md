@@ -3,10 +3,13 @@
 Status: **Part 1 implemented and fully verified live end-to-end (2026-07-29): full 5-test suite
 consistently completes in ~30-35s via `task eval:github-issue-creator`, no hangs, after fixing the
 `@`-vs-`file://` prompt bug below. Part 2 in progress: coverage map + gap list done, one order
-assertion added, `repo-failure`'s flaky checks hardened then piloted as multi-judge `llm-rubric`
-(pending live validation), remaining priority gaps (verify `issue create`/`issue edit` invoked) not
-started.** This file is the handoff artifact for two related efforts so they aren't lost across
-sessions/compaction. Update the checkboxes as work lands.
+assertion added, all remaining open-ended `containsAny` checks across the suite converted to
+multi-judge `llm-rubric` panels (8 panels / 24 judge calls total) — ⚠️ **none of this has been run
+against real judge models yet; running the full suite once end-to-end is the top priority before
+anything else in Part 2**, since a systemic problem (e.g. a judge not returning clean JSON) would
+now affect most of the suite at once. Remaining priority gaps (verify `issue create`/`issue edit`
+invoked) not started.** This file is the handoff artifact for two related efforts so they aren't
+lost across sessions/compaction. Update the checkboxes as work lands.
 
 ## Background / problem statement
 
@@ -245,9 +248,22 @@ tests, (3) harness scaffolding (can overlap with 1/2), (4) run ablation once cov
   confirm here whether they reliably reply with only JSON. Trade-offs to watch for when you run
   this: (a) added latency — each `llm-rubric` call is another `devin -p` subprocess (~15-40s
   observed), so a 3-judge panel meaningfully slows this one test; (b) the judges could themselves be
-  inconsistent between runs. **This is scoped as a pilot on one test only — run it repeatedly before
-  deciding whether to extend the pattern to
-  other flaky/weak assertions.** Full details in `COVERAGE.md` Finding 7.
+  inconsistent between runs. Full details in `COVERAGE.md` Finding 7.
+- **Extended (2026-07-29) to the rest of the suite**, at the user's explicit request, before the
+  `repo-failure` pilot above had been validated with real judges (that ordering risk was called out
+  at the time). Converted the remaining 6 open-ended `containsAny` checks in `feature-request`,
+  `bug-report`, and `update-issue` to the same 3-judge `assert-set` pattern, reusing the judge
+  providers via YAML anchors (`&judgeSwe`/`&judgeCodex`/`&judgeGemini`, defined once in
+  `repo-failure`) so there is one source of truth for the panel across the whole file. Deliberately
+  left two checks as `containsAny`/`contains` (not converted): `bug-report`'s "backward compatible"
+  phrasing and `update-issue`'s "rate limiting" — both reflect a specific technical term taken
+  verbatim from the user's request rather than an open-ended paraphrasable concept. Full details in
+  `COVERAGE.md` Finding 8.
+- **⚠️ Next step is now higher-stakes than before:** the suite has 8 judge panels / 24 `llm-rubric`
+  calls, none run against real models yet. **Run `task eval:github-issue-creator` end-to-end and
+  confirm it completes correctly before doing anything else in Part 2** — if there's a systemic
+  problem (wrong model identifier, a judge not returning clean JSON, unacceptable latency), it now
+  affects most of the suite, not just one test.
 
 - Do we want the ablation runner to be a one-off manual script, or a `task ablate:<skill>` target
   that's part of the normal workflow going forward?

@@ -43,7 +43,7 @@
       assert:
         - type: llm-rubric
           metric: judge_swe
-          provider:
+          provider: &judgeSwe
             id: "exec: node ./providers/devin.js"
             config:
               model: "swe-1.6"
@@ -53,14 +53,14 @@
             and/or their permissions.
         - type: llm-rubric
           metric: judge_codex
-          provider:
+          provider: &judgeCodex
             id: "exec: node ./providers/devin.js"
             config:
               model: "codex"
           value: *repoFailureRubric
         - type: llm-rubric
           metric: judge_gemini
-          provider:
+          provider: &judgeGemini
             id: "exec: node ./providers/devin.js"
             config:
               model: "gemini-3.5-flash"
@@ -77,29 +77,65 @@
   vars:
     request: "Create a feature request in test-org/test-repo to add dark mode support."
   assert:
-    - type: javascript
-      value: file://assertions/containsAny.js
-      config:
-        values:
-          - "Repository access confirmed"
-          - "Issue created"
-          - "User Story"
-    - type: javascript
-      value: file://assertions/containsAny.js
-      config:
-        values:
-          - "create"
-          - "issue"
-          - "Feature request"
-    - type: javascript
-      value: file://assertions/containsAny.js
-      config:
-        values:
-          - "template or guidelines"
-          - "guidelines for how this issue"
-          - "standard format"
-          - "Issue created"
-          - "Acceptance Criteria"
+    # Converted from containsAny to LLM-judge panels (2026-07-29) -- see
+    # COVERAGE.md Finding 7 / PLAN.md. These check open-ended, paraphrasable
+    # concepts rather than exact required values, so semantic grading avoids
+    # the phrasing-brittleness problem containsAny has for this kind of
+    # check. Reuses the judge providers anchored in the repo-failure test
+    # above (same 3-vendor panel, same majority-vote threshold).
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: feature_request_progress_swe
+          provider: *judgeSwe
+          value: &featureRequestProgressRubric >
+            The response demonstrates the skill's workflow progressing appropriately toward
+            creating a GitHub issue -- for example, confirming repository access, gathering
+            requirements such as a user story, or reporting that the issue was created.
+        - type: llm-rubric
+          metric: feature_request_progress_codex
+          provider: *judgeCodex
+          value: *featureRequestProgressRubric
+        - type: llm-rubric
+          metric: feature_request_progress_gemini
+          provider: *judgeGemini
+          value: *featureRequestProgressRubric
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: feature_request_type_swe
+          provider: *judgeSwe
+          value: &featureRequestTypeRubric >
+            The response treats this as a feature request (as opposed to a bug report or other
+            issue type) when discussing, gathering information for, or drafting the issue.
+        - type: llm-rubric
+          metric: feature_request_type_codex
+          provider: *judgeCodex
+          value: *featureRequestTypeRubric
+        - type: llm-rubric
+          metric: feature_request_type_gemini
+          provider: *judgeGemini
+          value: *featureRequestTypeRubric
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: feature_request_template_swe
+          provider: *judgeSwe
+          value: &featureRequestTemplateRubric >
+            The response either asks the user whether they have a template or guidelines for how
+            the issue should be structured, or proceeds using the skill's standard default
+            structure (e.g. User Story, Overview, Acceptance Criteria).
+        - type: llm-rubric
+          metric: feature_request_template_codex
+          provider: *judgeCodex
+          value: *featureRequestTemplateRubric
+        - type: llm-rubric
+          metric: feature_request_template_gemini
+          provider: *judgeGemini
+          value: *featureRequestTemplateRubric
     - type: javascript
       value: file://assertions/ghCommandCalled.js
       config:
@@ -122,22 +158,47 @@
       https://github.com/test-org/test-repo/issues/7. The fix must be backward
       compatible with the v1 API and include regression tests.
   assert:
-    - type: javascript
-      value: file://assertions/containsAny.js
-      config:
-        values:
-          - "proposed GitHub issue"
-          - "Issue created"
-          - "Here's what I have"
-          - "summary of what I have"
-          - "Repository access confirmed"
-    - type: javascript
-      value: file://assertions/containsAny.js
-      config:
-        values:
-          - "References"
-          - "reference links"
-          - "reference URLs"
+    # Converted from containsAny to LLM-judge panels (2026-07-29) -- see
+    # COVERAGE.md Finding 7 / PLAN.md. Same rationale and judge panel as the
+    # "Minimal feature request" test above. Left as containsAny: the
+    # "backward compatible" check below, which is really a literal
+    # technical-term/spelling-variant check reflecting the user's own
+    # request wording, not an open-ended paraphrasable concept -- converting
+    # it would add judge cost/latency for little reliability benefit.
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: bug_report_progress_swe
+          provider: *judgeSwe
+          value: &bugReportProgressRubric >
+            The response presents a drafted or proposed GitHub issue, a summary of the
+            information gathered so far, or confirmation that the issue was created.
+        - type: llm-rubric
+          metric: bug_report_progress_codex
+          provider: *judgeCodex
+          value: *bugReportProgressRubric
+        - type: llm-rubric
+          metric: bug_report_progress_gemini
+          provider: *judgeGemini
+          value: *bugReportProgressRubric
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: bug_report_references_swe
+          provider: *judgeSwe
+          value: &bugReportReferencesRubric >
+            The response includes a References section, or otherwise clearly addresses the
+            reference links the user provided.
+        - type: llm-rubric
+          metric: bug_report_references_codex
+          provider: *judgeCodex
+          value: *bugReportReferencesRubric
+        - type: llm-rubric
+          metric: bug_report_references_gemini
+          provider: *judgeGemini
+          value: *bugReportReferencesRubric
     - type: javascript
       value: file://assertions/containsAny.js
       config:
@@ -145,15 +206,24 @@
           - "backward compatible"
           - "backward-compatible"
           - "backward compatibility"
-    - type: javascript
-      value: file://assertions/containsAny.js
-      config:
-        values:
-          - "Constraints"
-          - "constraint"
-          - "regression test"
-          - "acceptance criteria"
-          - "Acceptance Criteria"
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: bug_report_constraints_swe
+          provider: *judgeSwe
+          value: &bugReportConstraintsRubric >
+            The response addresses the technical constraints provided by the user (backward
+            compatibility and regression tests), whether in a dedicated Constraints section or
+            reflected in the acceptance criteria.
+        - type: llm-rubric
+          metric: bug_report_constraints_codex
+          provider: *judgeCodex
+          value: *bugReportConstraintsRubric
+        - type: llm-rubric
+          metric: bug_report_constraints_gemini
+          provider: *judgeGemini
+          value: *bugReportConstraintsRubric
     - type: contains
       value: "https://github.com/test-org/test-repo/issues/7"
 
@@ -165,13 +235,29 @@
     request: "Update issue #42 in test-org/test-repo to reflect the new API rate limiting requirements."
     expectedIssue: 42
   assert:
-    - type: javascript
-      value: file://assertions/containsAny.js
-      config:
-        values:
-          - "issue #42"
-          - "existing issue"
-          - "update"
+    # Converted from containsAny to an LLM-judge panel (2026-07-29) -- see
+    # COVERAGE.md Finding 7 / PLAN.md. Same rationale and judge panel as
+    # above. Left as a plain contains: "rate limiting" below, since that is
+    # reflecting a specific technical term straight from the user's own
+    # request, not an open-ended paraphrasable concept.
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: update_issue_context_swe
+          provider: *judgeSwe
+          value: &updateIssueContextRubric >
+            The response makes clear it is working with the existing issue #42, e.g. by
+            referencing its number, calling it the existing issue, or describing this as an
+            update.
+        - type: llm-rubric
+          metric: update_issue_context_codex
+          provider: *judgeCodex
+          value: *updateIssueContextRubric
+        - type: llm-rubric
+          metric: update_issue_context_gemini
+          provider: *judgeGemini
+          value: *updateIssueContextRubric
     - type: contains
       value: "rate limiting"
     - type: javascript

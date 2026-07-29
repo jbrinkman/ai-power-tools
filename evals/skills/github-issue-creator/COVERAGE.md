@@ -182,10 +182,24 @@ Coverage strength key:
    avoid both self-grading bias and correlated-family bias between judges. Verified the grader-mode
    plumbing itself works correctly (message parsing, system/user combination, JSON passthrough)
    using a stand-in fake `devin`; **not yet verified with the real models**, since we cannot confirm
-   here whether they reliably return only JSON with no extra prose. **Scoped as a pilot on this one
-   test only** — do not extend to other flaky/weak assertions until this one is confirmed both more
-   reliable and an acceptable latency/cost trade-off via repeated runs, same evidence bar as
-   Finding 6.
+   here whether they reliably return only JSON with no extra prose.
+8. **Extended (2026-07-29) to the rest of the suite's open-ended `containsAny` checks**, before
+   Finding 7's pilot had been validated with real judges — done at the user's explicit request, with
+   this ordering risk called out at the time. Converted 6 more checks the same way: `feature-request`
+   (workflow progress, feature-vs-bug-report framing, template/guidelines question — 3 checks),
+   `bug-report` (drafted-issue presentation, references section — 2 checks), `bug-report`
+   (constraints/regression-test coverage — 1 check), and `update-issue` (working with the existing
+   issue #42 — 1 check). All reuse the same 3-vendor judge panel and `threshold: 0.66`, via YAML
+   anchors (`&judgeSwe`/`&judgeCodex`/`&judgeGemini` defined once in `repo-failure`, aliased
+   everywhere else) so the provider config has one source of truth across the whole file. **Left as
+   `containsAny`/`contains` and deliberately not converted:** `bug-report`'s "backward compatible"
+   phrasing check and `update-issue`'s "rate limiting" check — both reflect a specific technical term
+   taken verbatim from the user's own request rather than an open-ended paraphrasable concept, so
+   converting them would add judge cost/latency for little reliability benefit. **This means the
+   suite now has 8 judge panels (24 `llm-rubric` calls total) that are all unvalidated against real
+   models — running the full suite once and confirming it completes correctly and at an acceptable
+   cost/time is now the top priority before trusting any of this**, more so than when Finding 7 was
+   scoped as a single-test pilot.
 
 **Closed (2026-07-28):** the Step 1 ordering gap (auth check before repo check) — added
 `evals/assertions/ghCommandOrder.js`, a generic "these commands must appear in this relative order
