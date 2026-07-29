@@ -126,8 +126,12 @@
           provider: *judgeSwe
           value: &featureRequestTemplateRubric >
             The response either asks the user whether they have a template or guidelines for how
-            the issue should be structured, or proceeds using the skill's standard default
-            structure (e.g. User Story, Overview, Acceptance Criteria).
+            the issue should be structured, OR begins gathering information using the skill's
+            standard default feature-request structure. Beginning the default structure includes
+            asking the user to describe what they need in user-story format ("As a [role], I want
+            [action], so that [benefit]"), asking for an overview, proposed solution, value/impact,
+            or acceptance criteria. Mentioning "user story format" or "describe what you need"
+            while asking the first default question counts as beginning the default structure.
         - type: llm-rubric
           metric: feature_request_template_codex
           provider: *judgeCodex
