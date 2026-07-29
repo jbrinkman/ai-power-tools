@@ -157,9 +157,9 @@ Coverage strength key:
    `containsAny` for the template/guidelines question. These are `contains`/`containsAny` checks
    against natural-language phrasing the model paraphrases inconsistently (e.g. "I couldn't locate
    that repository" instead of literal "not found"), not real skill regressions — confirmed by the
-   fact that every run finished in the same ~30-35s regardless of pass/fail. Fixed by converting
+   fact that every run finished in the same ~30-35s regardless of pass/fail. First fix: converted
    `repo-failure`'s plain `contains "not found"`/`contains "verify"` into `containsAny` with several
-   phrasing alternatives (matching the pattern already used elsewhere in this suite), and expanding
+   phrasing alternatives (matching the pattern already used elsewhere in this suite), and expanded
    `feature-request`'s template/guidelines `containsAny` from 3 to 5 alternatives. **Not yet
    hardened, flagged as a latent risk rather than changed without evidence:** `repo-failure`'s plain
    `contains "repository"` (a model that consistently abbreviates to "repo" would fail this) and
@@ -167,6 +167,24 @@ Coverage strength key:
    contain "authenticate" as a substring — differs in the last two characters — so a model saying
    "authentication is required" instead of "you need to authenticate" would fail this check). Revisit
    if either is ever observed to actually fail.
+7. **Pilot (2026-07-29): LLM-as-judge (`assert-set` + `llm-rubric`) for `repo-failure`, replacing the
+   two `containsAny` checks from Finding 6.** Semantic grading structurally eliminates
+   paraphrase-brittleness (the actual root cause of Finding 6) instead of continuing to enumerate
+   phrasing alternatives, but introduces its own risks: (a) the judge model's own grading can be
+   inconsistent between runs — same discipline applies, don't trust it without repeated-run
+   evidence; (b) real added latency, since each `llm-rubric` check spawns another `devin -p`
+   subprocess (~15-40s observed for a single call) — a 3-judge panel meaningfully slows this one
+   test; (c) `providers/devin.js`'s "grader mode" branch had never been exercised before this pilot.
+   Uses `assert-set` with `threshold: 0.66` (promptfoo's documented majority-vote pattern, 2-of-3)
+   across three judge models (`swe-1.6`, `claude-opus-4.6`, `codex`), deliberately excluding
+   `claude-sonnet-4.6` (the generation model) to avoid self-grading bias. Verified the grader-mode
+   plumbing itself works correctly (message parsing, system/user combination, JSON passthrough)
+   using a stand-in fake `devin`; **not yet verified with the real model**, since we cannot confirm
+   here whether it reliably returns only JSON with no extra prose. Model identifiers are unverified
+   in this sandbox (no authenticated `devin` CLI) — confirm they're valid before trusting results.
+   **Scoped as a pilot on this one test only** — do not extend to other flaky/weak assertions until
+   this one is confirmed both more reliable and an acceptable latency/cost trade-off via repeated
+   runs, same evidence bar as Finding 6.
 
 **Closed (2026-07-28):** the Step 1 ordering gap (auth check before repo check) — added
 `evals/assertions/ghCommandOrder.js`, a generic "these commands must appear in this relative order

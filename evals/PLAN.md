@@ -3,10 +3,10 @@
 Status: **Part 1 implemented and fully verified live end-to-end (2026-07-29): full 5-test suite
 consistently completes in ~30-35s via `task eval:github-issue-creator`, no hangs, after fixing the
 `@`-vs-`file://` prompt bug below. Part 2 in progress: coverage map + gap list done, one order
-assertion added, remaining priority gaps (verify `issue create`/`issue edit` invoked) not started,
-and now blocked on re-reviewing all 5 tests' actual behavior now that Devin receives the real skill
-content (see "Known issues and fixes").** This file is the handoff artifact for two related efforts
-so they aren't lost across sessions/compaction. Update the checkboxes as work lands.
+assertion added, `repo-failure`'s flaky checks hardened then piloted as multi-judge `llm-rubric`
+(pending live validation), remaining priority gaps (verify `issue create`/`issue edit` invoked) not
+started.** This file is the handoff artifact for two related efforts so they aren't lost across
+sessions/compaction. Update the checkboxes as work lands.
 
 ## Background / problem statement
 
@@ -232,6 +232,20 @@ tests, (3) harness scaffolding (can overlap with 1/2), (4) run ablation once cov
   re-run the suite several more times to confirm the hardened assertions actually reduce the flake
   rate**, and re-review `bug-report`/`update-issue` (not covered by the 6-run sample above) the same
   way once more data is available.
+- **Pilot (2026-07-29): LLM-as-judge for `repo-failure`.** Replaced the two `containsAny` checks
+  from the previous item with an `assert-set` (`threshold: 0.66`, promptfoo's documented 2-of-3
+  majority-vote pattern) across three `llm-rubric` judges using different models (`swe-1.6`,
+  `claude-opus-4.6`, `codex`), excluding the generation model (`claude-sonnet-4.6`) to avoid
+  self-grading bias. Rationale: semantic grading eliminates paraphrase-brittleness structurally
+  instead of us continuing to enumerate phrasings. Verified the previously-unused "grader mode"
+  branch in `providers/devin.js` works correctly using a stand-in fake `devin` (message parsing,
+  system/user combination, JSON passthrough all confirmed) — **but not yet verified against the
+  real model**, since we can't confirm here whether it reliably replies with only JSON. Trade-offs
+  to watch for when you run this: (a) added latency — each `llm-rubric` call is another `devin -p`
+  subprocess (~15-40s observed), so a 3-judge panel meaningfully slows this one test; (b) the judges
+  could themselves be inconsistent between runs; (c) unverified model identifiers. **This is scoped
+  as a pilot on one test only — run it repeatedly before deciding whether to extend the pattern to
+  other flaky/weak assertions.** Full details in `COVERAGE.md` Finding 7.
 
 - Do we want the ablation runner to be a one-off manual script, or a `task ablate:<skill>` target
   that's part of the normal workflow going forward?

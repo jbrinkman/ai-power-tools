@@ -28,28 +28,48 @@
   assert:
     - type: contains
       value: repository
-    - type: javascript
-      value: file://assertions/containsAny.js
-      config:
-        values:
-          - "not found"
-          - "doesn't exist"
-          - "does not exist"
-          - "couldn't find"
-          - "could not find"
-          - "no access"
-          - "don't have access"
-          - "unable to access"
-    - type: javascript
-      value: file://assertions/containsAny.js
-      config:
-        values:
-          - "verify"
-          - "double-check"
-          - "double check"
-          - "confirm the repository"
-          - "check the repository name"
-          - "check the repo name"
+    # PILOT (2026-07-29): replaces two flaky containsAny checks (see
+    # COVERAGE.md Finding 6 / PLAN.md) with a majority-vote (2-of-3) LLM
+    # judge panel, to test semantic grading against paraphrase-brittle
+    # exact-substring matching. Judges deliberately exclude
+    # claude-sonnet-4.6 (the generation model) to avoid self-grading bias.
+    # Needs live validation: model identifiers below are unverified in this
+    # sandbox (no authenticated devin CLI available) -- confirm they work,
+    # and run this test repeatedly to compare reliability against the
+    # containsAny approach it replaces before extending this pattern.
+    - type: assert-set
+      threshold: 0.66 # 2 of 3 judges must agree
+      assert:
+        - type: llm-rubric
+          metric: judge_swe
+          provider:
+            id: "exec: node ./providers/devin.js"
+            config:
+              model: "swe-1.6"
+          value: >
+            The response clearly communicates that the target repository was not found or that
+            the user does not have access to it, AND asks the user to verify the repository name
+            and/or their permissions.
+        - type: llm-rubric
+          metric: judge_opus
+          provider:
+            id: "exec: node ./providers/devin.js"
+            config:
+              model: "claude-opus-4.6"
+          value: >
+            The response clearly communicates that the target repository was not found or that
+            the user does not have access to it, AND asks the user to verify the repository name
+            and/or their permissions.
+        - type: llm-rubric
+          metric: judge_codex
+          provider:
+            id: "exec: node ./providers/devin.js"
+            config:
+              model: "codex"
+          value: >
+            The response clearly communicates that the target repository was not found or that
+            the user does not have access to it, AND asks the user to verify the repository name
+            and/or their permissions.
     - type: javascript
       value: file://assertions/ghCommandCalled.js
       config:
