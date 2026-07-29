@@ -32,7 +32,7 @@ evals/
 ## How it works
 
 - `promptfooconfig.yaml` defines the Devin provider (`claude-sonnet-4.6`) and the grader (`swe-1.6`).
-- The skill prompt is loaded directly from `../../skills/<skill>/SKILL.md` so it never goes out of sync with the skill definition.
+- The skill prompt is loaded directly from `../skills/<skill>/SKILL.md` via a `file://`-prefixed `vars` entry (`skillFile: file://../skills/<skill>/SKILL.md`), so it never goes out of sync with the skill definition. The prompt template references it as a plain `{{skillFile}}` — do not prefix it with `@`; that is not a promptfoo file-reference convention (it looks similar to `@`-mention syntax in some editors/CLIs, but promptfoo only recognizes `file://`). An earlier version of this config used `@{{skillFile}}`, which silently passed the literal, unresolved path string to Devin instead of the skill's actual content — see `PLAN.md`'s "Known issues and fixes".
 - `providers/devin.js` prepends `mocks/` to `PATH` before spawning Devin, so the skill executes the fake `gh` script instead of the real GitHub CLI.
 - Before each test invocation, `providers/devin.js` creates a private, unique temp file and points the mock at it via `GH_MOCK_LOG_FILE`. `mocks/gh` records every command it receives to that file and returns responses based on test variables (e.g., `authFail`, `repoFail`, `expectedIssue`).
 - After Devin finishes, `providers/devin.js` reads that temp file and appends its contents to the provider output, wrapped in delimiters (see `lib/mockLog.js`), then deletes the temp file. Because the trace travels with the specific test's output, it can never collide with or leak into another test's results — there's no shared log file to keep track of.

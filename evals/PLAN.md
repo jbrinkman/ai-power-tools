@@ -178,7 +178,38 @@ tests, (3) harness scaffolding (can overlap with 1/2), (4) run ablation once cov
   shared `runDevin()` helper) and a configurable timeout (`DEVIN_EVAL_TIMEOUT_MS`, default 10
   minutes) as a second line of defense — any future hang now fails loudly with a clear message
   instead of stalling the whole eval run silently. This predates the Part 1 refactor (confirmed via
-  git history) so it isn't a regression we introduced, but it's fixed now regardless.
+  git history) so it isn't a regression we introduced, but it's fixed now regardless. **This fix
+  was necessary defense-in-depth but turned out not to be the primary cause of the intermittent
+  stalls reported afterward — see the next item.**
+
+- **Fixed (2026-07-29): the actual root cause of the intermittent stalls — `SKILL.md` was never
+  being loaded into the prompt at all.** `promptfooconfig.yaml`'s prompt template was
+  `"@{{skillFile}}\n\n## User Request\n\n{{request}}"`. `@` is **not** a promptfoo file-reference
+  convention (only `file://` is — confirmed via promptfoo's `maybeLoadFromExternalFile` source);
+  after Nunjucks substituted `{{skillFile}}`, promptfoo just passed the literal, unresolved string
+  `@../../skills/github-issue-creator/SKILL.md` to Devin as part of the prompt text (confirmed via
+  the `DEVIN_EVAL_DEBUG_LOG` diagnostic added above: `promptLength=151`, far too short to be the
+  real ~11KB skill file). On top of that, the path itself had one `../` too many for its actual
+  definition location (`evals/promptfooconfig.yaml` only needs one `../` to reach the repo root).
+  Devin never received the skill's actual instructions from promptfoo — every test's behavior so
+  far has been Devin treating that bad path as a hint and using its own tools to locate/interpret
+  it, with unpredictable (and sometimes very long) search time depending on the run. That fully
+  explains the intermittent nature: fast when it got lucky or gave up quickly, slow/stalled when it
+  kept searching. Fix: `vars.skillFile` now uses the correct `file://../skills/...` prefix and
+  relative path (promptfoo's real file-loading mechanism, verified to work for `vars` context), and
+  the prompt template no longer has the bogus `@` prefix. Verified directly: captured the actual
+  prompt argument passed to a stand-in fake `devin` before and after the fix — 151 characters
+  (literal path string) before, 11,159 characters (the real `SKILL.md` content plus the user
+  request) after.
+- **Open question this raises:** every eval result recorded before 2026-07-29 (including whatever
+  established confidence that `auth-failure`/`repo-failure`/`feature-request` "worked") was
+  actually grading Devin's response to a bare, skill-less `@path`-shaped request, not real
+  skill-following behavior. Those passing assertions likely reflect Devin's own generic good
+  judgment (and, per the earlier debug transcripts, its own initiative in tracking down the actual
+  skill file) rather than the skill's instructions being exercised as written. **All 5 tests should
+  be re-run and re-reviewed now that the real skill content is actually reaching Devin** — pass/fail
+  outcomes may change, and `COVERAGE.md` may need revisiting once we know what Devin does with the
+  actual instructions rather than a mangled reference to them.
 
 ## Open questions (resurface these before starting Part 2)
 

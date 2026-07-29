@@ -4,15 +4,18 @@
 
 description: ai-power-tools skills evaluation framework
 
-# The prompt loads the skill file and appends the user request.
-# The skillFile variable is set per skill in the imported test file.
+# The prompt loads the skill file and appends the user request. skillFile is
+# loaded via the file:// prefix (promptfoo's actual file-reference syntax --
+# a leading "@" is NOT a promptfoo convention and was previously silently
+# passed through as literal text, meaning Devin never received the real
+# skill content -- see PLAN.md "Known issues and fixes").
 prompts:
-  - "@{{skillFile}}\n\n## User Request\n\n{{request}}"
+  - "{{skillFile}}\n\n## User Request\n\n{{request}}"
 
 # Default test vars and grader configuration used for all tests.
 defaultTest:
   vars:
-    skillFile: ../../skills/github-issue-creator/SKILL.md
+    skillFile: file://../skills/github-issue-creator/SKILL.md
     expectedRepo: test-org/test-repo
   options:
     provider: "exec: node ./providers/devin.js"
