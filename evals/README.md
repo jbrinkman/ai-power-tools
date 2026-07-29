@@ -64,16 +64,21 @@ task clean
 
 1. Create `evals/skills/<skill>/tests.yaml` as a YAML list of test cases.
 2. Set `metadata.skill: <skill>` on each test.
-3. Add `- file://skills/<skill>/tests.yaml` to `tests:` in `promptfooconfig.yaml`.
-4. Add a `task eval:<skill>` target to `Taskfile.yml`.
+3. Set `metadata.id: <short-stable-slug>` on each test (e.g. `feature-request`) — a stable
+   cross-reference key for that skill's `COVERAGE.md` and for `promptfoo eval --filter-metadata
+   id=<slug>`. Use `metadata`, not `vars`, since `vars` get forwarded into any mock's environment
+   by `providers/devin.js` and this id has nothing to do with the skill under test.
+4. Add `- file://skills/<skill>/tests.yaml` to `tests:` in `promptfooconfig.yaml`.
+5. Add a `task eval:<skill>` target to `Taskfile.yml`.
 
 ## Keeping coverage maps in sync
 
 Skills with a `COVERAGE.md` (e.g. `skills/github-issue-creator/COVERAGE.md`) maintain a
 hand-authored map from each instruction in that skill's `SKILL.md` to the specific test/assertion
-that would fail if the instruction were violated or removed. It exists to support load-bearing
-analysis of the prompt (see `PLAN.md`) — a stale coverage map is worse than none, since it gives
-false confidence about what's actually being tested.
+that would fail if the instruction were violated or removed, referencing tests by their
+`metadata.id`. It exists to support load-bearing analysis of the prompt (see `PLAN.md`) — a stale
+coverage map is worse than none, since it gives false confidence about what's actually being
+tested.
 
 **Any change to a skill's `SKILL.md` or its `tests.yaml`/assertions must update that skill's
 `COVERAGE.md` in the same PR.** Treat it the same as updating tests when you change behavior.

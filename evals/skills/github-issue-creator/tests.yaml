@@ -4,6 +4,7 @@
 - description: Step 1a — gh not authenticated
   metadata:
     skill: github-issue-creator
+    id: auth-failure
   vars:
     request: "Create an issue in test-org/test-repo to add dark mode support."
     authFail: true
@@ -20,6 +21,7 @@
 - description: Step 1b — repo not found or no access
   metadata:
     skill: github-issue-creator
+    id: repo-failure
   vars:
     request: "Create an issue in test-org/test-repo to add dark mode support."
     repoFail: true
@@ -38,6 +40,7 @@
 - description: Minimal feature request
   metadata:
     skill: github-issue-creator
+    id: feature-request
   vars:
     request: "Create a feature request in test-org/test-repo to add dark mode support."
   assert:
@@ -76,6 +79,7 @@
 - description: Bug report with references and constraints
   metadata:
     skill: github-issue-creator
+    id: bug-report
   vars:
     request: >
       File a bug report in test-org/test-repo. The checkout page crashes when a
@@ -121,6 +125,7 @@
 - description: Update existing issue
   metadata:
     skill: github-issue-creator
+    id: update-issue
   vars:
     request: "Update issue #42 in test-org/test-repo to reflect the new API rate limiting requirements."
     expectedIssue: 42

@@ -76,6 +76,14 @@ Status: **implemented, pending a live `task eval:github-issue-creator` run to co
       a harmless cosmetic label, but on reflection that leaves dead config in place that could
       mislead a future reader into thinking it's wired to something — inconsistent with this
       project's own load-bearing standard, so it was removed instead.
+- [x] **Reintroduced (2026-07-28) as `metadata.id`, not `vars.testId`.** Building `COVERAGE.md`
+      surfaced a real need for a stable per-test identifier: coverage-map cross-referencing today,
+      and correlating results once coverage-map generation is automated from eval output. Unlike
+      the removed `vars.testId`, `metadata.id` has an actual consumer and deliberately lives in
+      `metadata` (promptfoo's native filterable-metadata mechanism, already used for
+      `metadata.skill`) rather than `vars`, so it is never forwarded into the gh mock's environment
+      the way `vars.testId` was — the two problems are not the same. Also usable today via
+      `promptfoo eval --filter-metadata id=<slug>` to run a single test in isolation.
 - [x] Verified the mechanism directly (without a live Devin session, since this sandbox's `devin`
       CLI is not authenticated — `Error: Not logged in. Run devin auth login to authenticate.`):
   - `bash -n` / `node -c` syntax-checked every changed file.
