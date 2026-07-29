@@ -45,6 +45,48 @@ if (context && context !== '{}') {
   }
 }
 
+// Maximum time to let a single `devin` invocation run before we kill it and
+// fail loudly, instead of letting a hang (e.g. the child waiting on stdin
+// that will never arrive) block the whole eval run indefinitely.
+const DEVIN_TIMEOUT_MS = Number(process.env.DEVIN_EVAL_TIMEOUT_MS) || 10 * 60 * 1000;
+
+// Run the devin CLI. stdin is ignored (not piped) so a `devin` invocation
+// that ever tries to read from stdin gets immediate EOF instead of hanging
+// forever on a pipe nothing will ever write to or close — see
+// https://github.com/promptfoo/promptfoo's own ScriptCompletionProvider,
+// which closes stdin for exactly this reason ("tools like opencode block
+// forever waiting for input"). The timeout is a second line of defense so
+// any other kind of hang fails loudly instead of stalling the whole eval run.
+function runDevin(args, env) {
+  const result = spawnSync('devin', args, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: DEVIN_TIMEOUT_MS,
+    env,
+  });
+
+  if (result.error) {
+    if (result.error.code === 'ETIMEDOUT') {
+      console.error(`devin timed out after ${DEVIN_TIMEOUT_MS}ms (set DEVIN_EVAL_TIMEOUT_MS to change this)`);
+    } else {
+      console.error(result.error.message);
+    }
+    process.exit(1);
+  }
+
+  if (result.signal) {
+    console.error(`devin was killed by signal ${result.signal} (timeout: ${DEVIN_TIMEOUT_MS}ms, set DEVIN_EVAL_TIMEOUT_MS to change this)`);
+    process.exit(1);
+  }
+
+  if (result.status !== 0) {
+    console.error(result.stdout || result.stderr);
+    process.exit(result.status || 1);
+  }
+
+  return result;
+}
+
 // Detect mode: if prompt looks like a JSON array, use grader mode.
 let isGraderMode = false;
 try {
@@ -97,43 +139,14 @@ if (isGraderMode) {
   // Combine system and user into one prompt (Devin has no --system-prompt).
   const fullPrompt = `${systemMsg}\n\n${userMsg}`;
 
-  const result = spawnSync('devin', ['-p', '--model', model, '--', fullPrompt], {
-    encoding: 'utf8',
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env,
-  });
-
-  if (result.error) {
-    console.error(result.error.message);
-    process.exit(1);
-  }
-
-  if (result.status !== 0) {
-    console.error(result.stdout || result.stderr);
-    process.exit(result.status || 1);
-  }
-
+  const result = runDevin(['-p', '--model', model, '--', fullPrompt], env);
   console.log(result.stdout);
 } else {
   // ===== PROVIDER MODE =====
   // Call devin cli with single-turn mode and specified model.
   // Use dangerous permission mode so the skill can execute shell commands
   // (the mock gh script in PATH prevents touching the real GitHub CLI).
-  const result = spawnSync('devin', ['-p', '--permission-mode', 'dangerous', '--model', model, '--', prompt], {
-    encoding: 'utf8',
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env,
-  });
-
-  if (result.error) {
-    console.error(result.error.message);
-    process.exit(1);
-  }
-
-  if (result.status !== 0) {
-    console.error(result.stdout || result.stderr);
-    process.exit(result.status || 1);
-  }
+  const result = runDevin(['-p', '--permission-mode', 'dangerous', '--model', model, '--', prompt], env);
 
   // Fold the mock's recorded gh invocations into the output so assertions
   // can read them directly instead of re-locating a shared log file on disk.

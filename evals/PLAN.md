@@ -165,6 +165,21 @@ tests, (3) harness scaffolding (can overlap with 1/2), (4) run ablation once cov
       `tests.yaml` change. Revisit auto-generation from section tags once the ablation harness's
       tagging work (below) exists — see open question below on enforcement.
 
+## Known issues and fixes
+
+- **Fixed (2026-07-28): eval runs could hang indefinitely.** Running `task eval:github-issue-creator`
+  appeared to hang and stop making progress. Root cause: `providers/devin.js` spawned the nested
+  `devin` CLI with `stdio: ['pipe', 'pipe', 'pipe']` but never wrote to or closed its stdin — if
+  `devin -p` ever tries to read from stdin, the process blocks forever on a pipe nothing will ever
+  supply. This exact failure mode is called out in promptfoo's own `ScriptCompletionProvider`
+  source, which closes stdin for the scripts it spawns for the same reason ("tools like opencode
+  block forever waiting for input"); our nested spawn of the `devin` CLI itself hadn't gotten the
+  same treatment. Fix: both `spawnSync` calls now use `stdio: ['ignore', 'pipe', 'pipe']` (via a
+  shared `runDevin()` helper) and a configurable timeout (`DEVIN_EVAL_TIMEOUT_MS`, default 10
+  minutes) as a second line of defense — any future hang now fails loudly with a clear message
+  instead of stalling the whole eval run silently. This predates the Part 1 refactor (confirmed via
+  git history) so it isn't a regression we introduced, but it's fixed now regardless.
+
 ## Open questions (resurface these before starting Part 2)
 
 - Do we want the ablation runner to be a one-off manual script, or a `task ablate:<skill>` target
