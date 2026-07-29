@@ -50,6 +50,11 @@ task eval:github-issue-creator
 # Evaluate all skills
 task eval:all
 
+# Run a single test by its stable metadata.id (see "Adding a new skill" below), without
+# creating a dedicated task or editing the Taskfile — anything after `--` is passed straight
+# through to `promptfoo eval`
+task eval:github-issue-creator -- --filter-metadata id=feature-request
+
 # Open the Promptfoo dashboard with all evaluation history
 task view
 

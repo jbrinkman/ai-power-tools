@@ -7,14 +7,14 @@ tasks:
       - task --list
 
   eval:github-issue-creator:
-    desc: Evaluate the github-issue-creator skill
+    desc: 'Evaluate the github-issue-creator skill. Pass extra promptfoo flags after --, e.g. task eval:github-issue-creator -- --filter-metadata id=feature-request'
     cmds:
-      - "npx promptfoo eval --no-cache --config promptfooconfig.yaml --filter-metadata skill=github-issue-creator --delay 0"
+      - "npx promptfoo eval --no-cache --config promptfooconfig.yaml --filter-metadata skill=github-issue-creator --delay 0 {{.CLI_ARGS}}"
 
   eval:all:
-    desc: Evaluate all skills
+    desc: 'Evaluate all skills. Pass extra promptfoo flags after --, e.g. task eval:all -- --filter-metadata id=feature-request'
     cmds:
-      - "npx promptfoo eval --no-cache --config promptfooconfig.yaml --delay 0"
+      - "npx promptfoo eval --no-cache --config promptfooconfig.yaml --delay 0 {{.CLI_ARGS}}"
 
   view:
     desc: Open the Promptfoo dashboard with all evaluation history
