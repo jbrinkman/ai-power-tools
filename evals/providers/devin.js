@@ -18,6 +18,24 @@ const prompt = process.argv[2];
 const options = process.argv[3];
 const context = process.argv[4];
 
+// Opt-in diagnostic logging for troubleshooting hangs in the real
+// promptfoo -> node -> devin pipeline (as opposed to invoking devin
+// directly, which bypasses this script entirely). Set
+// DEVIN_EVAL_DEBUG_LOG=/path/to/file and tail it while a hung eval is
+// running to see exactly which step it is stuck on. No effect if unset.
+const DEBUG_LOG = process.env.DEVIN_EVAL_DEBUG_LOG;
+function debugLog(msg) {
+  if (!DEBUG_LOG) {
+    return;
+  }
+  try {
+    fs.appendFileSync(DEBUG_LOG, `[${new Date().toISOString()}] [pid ${process.pid}] ${msg}\n`);
+  } catch (e) {
+    // Never let debug logging itself break the run.
+  }
+}
+debugLog(`start: promptLength=${prompt ? prompt.length : 0} options=${options}`);
+
 // Resolve the mock gh directory relative to this script.
 const mockGhDir = path.resolve(__dirname, '../mocks');
 
@@ -58,12 +76,14 @@ const DEVIN_TIMEOUT_MS = Number(process.env.DEVIN_EVAL_TIMEOUT_MS) || 10 * 60 * 
 // forever waiting for input"). The timeout is a second line of defense so
 // any other kind of hang fails loudly instead of stalling the whole eval run.
 function runDevin(args, env) {
+  debugLog(`spawning devin with args: ${JSON.stringify(args)}`);
   const result = spawnSync('devin', args, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout: DEVIN_TIMEOUT_MS,
     env,
   });
+  debugLog(`devin returned: status=${result.status} signal=${result.signal} error=${result.error && result.error.message} stdoutLength=${result.stdout ? result.stdout.length : 0} stderrLength=${result.stderr ? result.stderr.length : 0}`);
 
   if (result.error) {
     if (result.error.code === 'ETIMEDOUT') {
@@ -114,6 +134,7 @@ if (!isGraderMode) {
     env[`PROMPTFOO_VAR_${key}`] = String(value);
   });
 }
+debugLog(`mode=${isGraderMode ? 'grader' : 'provider'} model=${model} mockLogFile=${mockLogFile}`);
 
 if (isGraderMode) {
   // ===== GRADER MODE =====
@@ -159,5 +180,6 @@ if (isGraderMode) {
     fs.rmSync(mockLogDir, { recursive: true, force: true });
   }
 
+  debugLog(`done, mockLogLength=${mockLog.length}`);
   console.log(result.stdout + wrapMockLog(mockLog));
 }
