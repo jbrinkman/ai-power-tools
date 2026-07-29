@@ -45,7 +45,7 @@ Coverage strength key:
 | 1a. Run `gh auth status` before anything else | `auth-failure` | `ghCommandCalled` (`auth status`) | Strong |
 | 1a. On auth failure: tell user, suggest `gh auth login`, **stop the workflow** | `auth-failure` | `contains` "gh auth login", "authenticate" | Weak — checks the message text but not that the workflow actually stopped (e.g., that `repo view`/`issue create` were never subsequently called) |
 | 1b. Verify repo access via `gh repo view` | `repo-failure`, `feature-request` | `ghCommandCalled` (`repo view`) | Strong |
-| 1b. On repo failure: tell user, ask to verify name/permissions, **stop the workflow** | `repo-failure` | `contains` "repository", "not found", "verify" | Weak — same gap as above, doesn't confirm the workflow actually stopped |
+| 1b. On repo failure: tell user, ask to verify name/permissions, **stop the workflow** | `repo-failure` | `contains` "repository"; `containsAny` for "not found"/"no access" phrasing and "verify"/"double-check" phrasing (hardened 2026-07-29, see Finding 6) | Weak — doesn't confirm the workflow actually stopped |
 | Order: auth check happens *before* repo check | `feature-request` | `ghCommandOrder` (`auth status` -> `repo view`) | Strong |
 
 ## Step 2: Determine Workflow Mode
@@ -63,7 +63,7 @@ Coverage strength key:
 
 | Instruction | Test(s) | Assertion | Strength |
 |---|---|---|---|
-| 3a. Ask whether the user has a template/guidelines | `feature-request` | `containsAny` incl. "template or guidelines" (1 of 3 alternatives) | Weak |
+| 3a. Ask whether the user has a template/guidelines | `feature-request` | `containsAny` incl. "template or guidelines" (1 of 5 alternatives, expanded 2026-07-29 — see Finding 6) | Weak |
 | 3b.1 Ask for repository (if unknown) | — | — | **None** (all test requests already state the repo) |
 | 3b.2 Ask for issue type | — | — | **None** |
 | 3b.3 Ask for user story / problem statement | `feature-request` | `containsAny` incl. "User Story" (1 of 3) | Weak |
@@ -150,6 +150,23 @@ Coverage strength key:
 5. **Never-exercised branches:** custom-template-driven gathering (Step 3c), all Step 7 error
    handling paths, and most of the individual Step 3b questions (issue type, additional context,
    labels, assignees, milestone) have zero coverage today.
+6. **Confirmed flaky assertions (2026-07-29), root cause: exact-substring `contains` checks on
+   paraphrasable prose.** After fixing the prompt-loading bug (see `PLAN.md`), 6 consecutive runs of
+   the unmodified skill showed `repo-failure` failing 3/6 times — once missing "not found", once
+   missing "verify", once missing both — and `feature-request` failing 1/6 time on its 3-alternative
+   `containsAny` for the template/guidelines question. These are `contains`/`containsAny` checks
+   against natural-language phrasing the model paraphrases inconsistently (e.g. "I couldn't locate
+   that repository" instead of literal "not found"), not real skill regressions — confirmed by the
+   fact that every run finished in the same ~30-35s regardless of pass/fail. Fixed by converting
+   `repo-failure`'s plain `contains "not found"`/`contains "verify"` into `containsAny` with several
+   phrasing alternatives (matching the pattern already used elsewhere in this suite), and expanding
+   `feature-request`'s template/guidelines `containsAny` from 3 to 5 alternatives. **Not yet
+   hardened, flagged as a latent risk rather than changed without evidence:** `repo-failure`'s plain
+   `contains "repository"` (a model that consistently abbreviates to "repo" would fail this) and
+   `auth-failure`'s plain `contains "authenticate"` (note: the string "authentication" does **not**
+   contain "authenticate" as a substring — differs in the last two characters — so a model saying
+   "authentication is required" instead of "you need to authenticate" would fail this check). Revisit
+   if either is ever observed to actually fail.
 
 **Closed (2026-07-28):** the Step 1 ordering gap (auth check before repo check) — added
 `evals/assertions/ghCommandOrder.js`, a generic "these commands must appear in this relative order

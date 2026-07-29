@@ -28,10 +28,28 @@
   assert:
     - type: contains
       value: repository
-    - type: contains
-      value: not found
-    - type: contains
-      value: verify
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "not found"
+          - "doesn't exist"
+          - "does not exist"
+          - "couldn't find"
+          - "could not find"
+          - "no access"
+          - "don't have access"
+          - "unable to access"
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "verify"
+          - "double-check"
+          - "double check"
+          - "confirm the repository"
+          - "check the repository name"
+          - "check the repo name"
     - type: javascript
       value: file://assertions/ghCommandCalled.js
       config:
@@ -63,6 +81,8 @@
       config:
         values:
           - "template or guidelines"
+          - "guidelines for how this issue"
+          - "standard format"
           - "Issue created"
           - "Acceptance Criteria"
     - type: javascript

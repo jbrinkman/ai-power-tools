@@ -219,10 +219,19 @@ tests, (3) harness scaffolding (can overlap with 1/2), (4) run ablation once cov
   matching the earlier fake-`devin` timing verification. 3 of 4 runs passed all tests; 1 run had 2
   test failures. All 4 runs finished in the same ~30-35s range regardless of pass/fail, confirming
   the failures are ordinary LLM non-determinism (different assertion outcomes from run to run for
-  the same input), not a timing/hang issue. **Next: identify which 2 tests failed and why**, since
-  that's directly relevant input for `COVERAGE.md` (a test that only sometimes passes on an
-  unmodified skill is a flaky/weak assertion, which would corrupt ablation-testing conclusions the
-  same way the false-positive risks discussed earlier in this file would).
+  the same input), not a timing/hang issue.
+- **Root-caused and fixed (2026-07-29):** ran 6 more attempts with JSON output to extract exact
+  failure reasons. `repo-failure` failed 3/6 times (missing "not found" and/or "verify" — a
+  different one each time) and `feature-request` failed 1/6 time (its 3-alternative
+  template/guidelines `containsAny`). Root cause: plain `contains` (exact-substring, case-sensitive)
+  checks against natural-language phrasing the model paraphrases inconsistently, not a real skill
+  regression. Fixed in `tests.yaml` by converting `repo-failure`'s two `contains` checks into
+  `containsAny` with several phrasing alternatives, and expanding `feature-request`'s
+  template/guidelines `containsAny` from 3 to 5 alternatives. Full details and two related latent
+  risks (not yet changed, no observed failures) recorded in `COVERAGE.md` Finding 6. **Still to do:
+  re-run the suite several more times to confirm the hardened assertions actually reduce the flake
+  rate**, and re-review `bug-report`/`update-issue` (not covered by the 6-run sample above) the same
+  way once more data is available.
 
 - Do we want the ablation runner to be a one-off manual script, or a `task ablate:<skill>` target
   that's part of the normal workflow going forward?
