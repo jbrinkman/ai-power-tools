@@ -176,15 +176,16 @@ Coverage strength key:
    subprocess (~15-40s observed for a single call) — a 3-judge panel meaningfully slows this one
    test; (c) `providers/devin.js`'s "grader mode" branch had never been exercised before this pilot.
    Uses `assert-set` with `threshold: 0.66` (promptfoo's documented majority-vote pattern, 2-of-3)
-   across three judge models (`swe-1.6`, `claude-opus-4.6`, `codex`), deliberately excluding
-   `claude-sonnet-4.6` (the generation model) to avoid self-grading bias. Verified the grader-mode
+   across three judge models spanning three different vendors — `swe-1.6` (Cognition), `codex`/
+   `gpt-5.3-codex` (OpenAI), `gemini-3.5-flash` (Google) — confirmed valid via `devin models list`.
+   Deliberately excludes `claude-sonnet-4.6` (the generation model) and the whole Claude family, to
+   avoid both self-grading bias and correlated-family bias between judges. Verified the grader-mode
    plumbing itself works correctly (message parsing, system/user combination, JSON passthrough)
-   using a stand-in fake `devin`; **not yet verified with the real model**, since we cannot confirm
-   here whether it reliably returns only JSON with no extra prose. Model identifiers are unverified
-   in this sandbox (no authenticated `devin` CLI) — confirm they're valid before trusting results.
-   **Scoped as a pilot on this one test only** — do not extend to other flaky/weak assertions until
-   this one is confirmed both more reliable and an acceptable latency/cost trade-off via repeated
-   runs, same evidence bar as Finding 6.
+   using a stand-in fake `devin`; **not yet verified with the real models**, since we cannot confirm
+   here whether they reliably return only JSON with no extra prose. **Scoped as a pilot on this one
+   test only** — do not extend to other flaky/weak assertions until this one is confirmed both more
+   reliable and an acceptable latency/cost trade-off via repeated runs, same evidence bar as
+   Finding 6.
 
 **Closed (2026-07-28):** the Step 1 ordering gap (auth check before repo check) — added
 `evals/assertions/ghCommandOrder.js`, a generic "these commands must appear in this relative order

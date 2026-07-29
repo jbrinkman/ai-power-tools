@@ -31,11 +31,12 @@
     # PILOT (2026-07-29): replaces two flaky containsAny checks (see
     # COVERAGE.md Finding 6 / PLAN.md) with a majority-vote (2-of-3) LLM
     # judge panel, to test semantic grading against paraphrase-brittle
-    # exact-substring matching. Judges deliberately exclude
-    # claude-sonnet-4.6 (the generation model) to avoid self-grading bias.
-    # Needs live validation: model identifiers below are unverified in this
-    # sandbox (no authenticated devin CLI available) -- confirm they work,
-    # and run this test repeatedly to compare reliability against the
+    # exact-substring matching. Judges deliberately span three different
+    # vendors (Cognition/SWE, OpenAI, Google) and exclude claude-sonnet-4.6
+    # (the generation model) and the whole Claude family, to avoid
+    # self-grading bias / correlated-family bias. Model identifiers
+    # confirmed valid via `devin models list` on 2026-07-29.
+    # Run this test repeatedly to compare reliability against the
     # containsAny approach it replaces before extending this pattern.
     - type: assert-set
       threshold: 0.66 # 2 of 3 judges must agree
@@ -51,21 +52,21 @@
             the user does not have access to it, AND asks the user to verify the repository name
             and/or their permissions.
         - type: llm-rubric
-          metric: judge_opus
-          provider:
-            id: "exec: node ./providers/devin.js"
-            config:
-              model: "claude-opus-4.6"
-          value: >
-            The response clearly communicates that the target repository was not found or that
-            the user does not have access to it, AND asks the user to verify the repository name
-            and/or their permissions.
-        - type: llm-rubric
           metric: judge_codex
           provider:
             id: "exec: node ./providers/devin.js"
             config:
               model: "codex"
+          value: >
+            The response clearly communicates that the target repository was not found or that
+            the user does not have access to it, AND asks the user to verify the repository name
+            and/or their permissions.
+        - type: llm-rubric
+          metric: judge_gemini
+          provider:
+            id: "exec: node ./providers/devin.js"
+            config:
+              model: "gemini-3.5-flash"
           value: >
             The response clearly communicates that the target repository was not found or that
             the user does not have access to it, AND asks the user to verify the repository name

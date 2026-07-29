@@ -234,17 +234,19 @@ tests, (3) harness scaffolding (can overlap with 1/2), (4) run ablation once cov
   way once more data is available.
 - **Pilot (2026-07-29): LLM-as-judge for `repo-failure`.** Replaced the two `containsAny` checks
   from the previous item with an `assert-set` (`threshold: 0.66`, promptfoo's documented 2-of-3
-  majority-vote pattern) across three `llm-rubric` judges using different models (`swe-1.6`,
-  `claude-opus-4.6`, `codex`), excluding the generation model (`claude-sonnet-4.6`) to avoid
-  self-grading bias. Rationale: semantic grading eliminates paraphrase-brittleness structurally
-  instead of us continuing to enumerate phrasings. Verified the previously-unused "grader mode"
-  branch in `providers/devin.js` works correctly using a stand-in fake `devin` (message parsing,
-  system/user combination, JSON passthrough all confirmed) — **but not yet verified against the
-  real model**, since we can't confirm here whether it reliably replies with only JSON. Trade-offs
-  to watch for when you run this: (a) added latency — each `llm-rubric` call is another `devin -p`
-  subprocess (~15-40s observed), so a 3-judge panel meaningfully slows this one test; (b) the judges
-  could themselves be inconsistent between runs; (c) unverified model identifiers. **This is scoped
-  as a pilot on one test only — run it repeatedly before deciding whether to extend the pattern to
+  majority-vote pattern) across three `llm-rubric` judges spanning three different vendors —
+  `swe-1.6` (Cognition), `codex`/`gpt-5.3-codex` (OpenAI), `gemini-3.5-flash` (Google), confirmed
+  valid via `devin models list` — excluding the generation model (`claude-sonnet-4.6`) and the whole
+  Claude family, to avoid both self-grading bias and correlated-family bias. Rationale: semantic
+  grading eliminates paraphrase-brittleness structurally instead of us continuing to enumerate
+  phrasings. Verified the previously-unused "grader mode" branch in `providers/devin.js` works
+  correctly using a stand-in fake `devin` (message parsing, system/user combination, JSON
+  passthrough all confirmed) — **but not yet verified against the real models**, since we can't
+  confirm here whether they reliably reply with only JSON. Trade-offs to watch for when you run
+  this: (a) added latency — each `llm-rubric` call is another `devin -p` subprocess (~15-40s
+  observed), so a 3-judge panel meaningfully slows this one test; (b) the judges could themselves be
+  inconsistent between runs. **This is scoped as a pilot on one test only — run it repeatedly before
+  deciding whether to extend the pattern to
   other flaky/weak assertions.** Full details in `COVERAGE.md` Finding 7.
 
 - Do we want the ablation runner to be a one-off manual script, or a `task ablate:<skill>` target
