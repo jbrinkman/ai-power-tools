@@ -1,8 +1,12 @@
 # Eval Framework Plan: Trustworthy Tool-Call Tracing + Prompt Load-Bearing Analysis
 
-Status: **Part 1 implemented and unit-verified; live end-to-end `task eval:*` run still pending an
-authenticated `devin` CLI. Part 2 not started.** This file is the handoff artifact for two related
-efforts so they aren't lost across sessions/compaction. Update the checkboxes as work lands.
+Status: **Part 1 implemented and fully verified live end-to-end (2026-07-29): full 5-test suite
+consistently completes in ~30-35s via `task eval:github-issue-creator`, no hangs, after fixing the
+`@`-vs-`file://` prompt bug below. Part 2 in progress: coverage map + gap list done, one order
+assertion added, remaining priority gaps (verify `issue create`/`issue edit` invoked) not started,
+and now blocked on re-reviewing all 5 tests' actual behavior now that Devin receives the real skill
+content (see "Known issues and fixes").** This file is the handoff artifact for two related efforts
+so they aren't lost across sessions/compaction. Update the checkboxes as work lands.
 
 ## Background / problem statement
 
@@ -210,8 +214,15 @@ tests, (3) harness scaffolding (can overlap with 1/2), (4) run ablation once cov
   be re-run and re-reviewed now that the real skill content is actually reaching Devin** — pass/fail
   outcomes may change, and `COVERAGE.md` may need revisiting once we know what Devin does with the
   actual instructions rather than a mangled reference to them.
-
-## Open questions (resurface these before starting Part 2)
+- **Confirmed fixed (2026-07-29):** user re-ran `task eval:github-issue-creator` (all 5 tests, real
+  `devin` CLI, no debug fakes) 4 times after the fix. Every run completed in ~30-35s — no hangs,
+  matching the earlier fake-`devin` timing verification. 3 of 4 runs passed all tests; 1 run had 2
+  test failures. All 4 runs finished in the same ~30-35s range regardless of pass/fail, confirming
+  the failures are ordinary LLM non-determinism (different assertion outcomes from run to run for
+  the same input), not a timing/hang issue. **Next: identify which 2 tests failed and why**, since
+  that's directly relevant input for `COVERAGE.md` (a test that only sometimes passes on an
+  unmodified skill is a flaky/weak assertion, which would corrupt ablation-testing conclusions the
+  same way the false-positive risks discussed earlier in this file would).
 
 - Do we want the ablation runner to be a one-off manual script, or a `task ablate:<skill>` target
   that's part of the normal workflow going forward?
