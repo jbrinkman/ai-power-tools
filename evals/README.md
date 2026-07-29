@@ -20,6 +20,7 @@ evals/
 ├── assertions/
 │   ├── containsAny.js            # Case-insensitive OR contains check
 │   ├── ghCommandCalled.js        # Verify a command was captured by the mock gh
+│   ├── ghCommandOrder.js         # Verify commands were captured in a given relative order
 │   ├── ghCommandUsesRepo.js      # Verify issue create/edit used the expected --repo
 │   └── issueNumberInCommand.js   # Verify issue edit referenced the expected issue number
 └── skills/

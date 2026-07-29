@@ -139,12 +139,13 @@ tests, (3) harness scaffolding (can overlap with 1/2), (4) run ablation once cov
   - Record pass/fail + score deltas per section vs. the full/baseline skill file.
   - Sections whose removal causes **no measurable regression** across the whole suite are removal
     candidates ("not load-bearing" per current test coverage).
-- [ ] **Add order/sequence assertions.** Since the embedded trace now gives the full ordered list
-      of `gh` invocations per test, add assertions like "auth status must precede repo view must
-      precede issue create" that map 1:1 to specific procedural instructions in the skill (e.g.
-      "always verify repo access before creating the issue"). This lets more of the skill's
-      *procedural* content be provably exercised, not just its stylistic/formatting content (which
-      `containsAny.js`-style checks cover today).
+- [x] **Add order/sequence assertions (started 2026-07-28).** Added
+      `evals/assertions/ghCommandOrder.js`, a generic "these commands must appear in this relative
+      order in the mock log" assertion, and wired `auth status -> repo view` into the "Feature
+      request" test (closes the Step 1 ordering gap in `COVERAGE.md`). This is reusable for further
+      sequencing checks (e.g. `repo view -> issue create`) once gap #1 in `COVERAGE.md`'s priority
+      list (verifying `issue create`/`issue edit` are actually invoked) is closed — not all
+      procedural ordering is covered yet, just the Step 1 case.
 - [x] **Build an instruction → assertion coverage map.** Done — see the checked-off item above and
       `skills/github-issue-creator/COVERAGE.md`. This map, cross-referenced with the ablation
       runner's empirical results (once built), is the actual artifact to present for the 95%

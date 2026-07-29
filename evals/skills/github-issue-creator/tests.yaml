@@ -66,6 +66,12 @@
       value: file://assertions/ghCommandCalled.js
       config:
         expectedCommand: repo view
+    - type: javascript
+      value: file://assertions/ghCommandOrder.js
+      config:
+        expectedOrder:
+          - "auth status"
+          - "repo view"
 
 - description: Bug report with references and constraints
   metadata:
