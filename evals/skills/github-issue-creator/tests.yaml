@@ -17,6 +17,18 @@
       value: file://assertions/ghCommandCalled.js
       config:
         expectedCommand: auth status
+    - type: javascript
+      value: file://assertions/ghCommandNotCalled.js
+      config:
+        forbiddenCommand: repo view
+    - type: javascript
+      value: file://assertions/ghCommandNotCalled.js
+      config:
+        forbiddenCommand: issue create
+    - type: javascript
+      value: file://assertions/ghCommandNotCalled.js
+      config:
+        forbiddenCommand: issue edit
 
 - description: Step 1b — repo not found or no access
   metadata:
@@ -69,6 +81,14 @@
       value: file://assertions/ghCommandCalled.js
       config:
         expectedCommand: repo view
+    - type: javascript
+      value: file://assertions/ghCommandNotCalled.js
+      config:
+        forbiddenCommand: issue create
+    - type: javascript
+      value: file://assertions/ghCommandNotCalled.js
+      config:
+        forbiddenCommand: issue edit
 
 - description: Minimal feature request
   metadata:

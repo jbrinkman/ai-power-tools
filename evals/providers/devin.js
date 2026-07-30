@@ -126,6 +126,10 @@ let mockLogDir = null;
 let mockLogFile = null;
 if (!isGraderMode) {
   env.PATH = `${mockGhDir}:${env.PATH}`;
+  // Explicitly point the skill at the mock gh binary so we are not relying on
+  // PATH precedence inside the Devin CLI subprocess (which reorders PATH and
+  // can place system directories ahead of our injected mock directory).
+  env.GH_CMD = path.join(mockGhDir, 'gh');
   mockLogDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gh-mock-'));
   mockLogFile = path.join(mockLogDir, 'gh-mock.log');
   env.GH_MOCK_LOG_FILE = mockLogFile;

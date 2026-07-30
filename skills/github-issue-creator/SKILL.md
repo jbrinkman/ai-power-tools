@@ -30,7 +30,7 @@ Before doing anything else, confirm the environment is ready.
 Run:
 
 ```bash
-gh auth status
+${GH_CMD:-gh} auth status
 ```
 
 **If authentication succeeds** (exit code 0, output shows an active account):
@@ -41,10 +41,10 @@ continue to 1b.
 1. Tell the user that `gh` is not installed or not authenticated.
 2. Suggest they run:
    ```bash
-   gh auth login
+   ${GH_CMD:-gh} auth login
    ```
 3. **Stop the workflow.** Do not proceed until the user confirms they have
-   authenticated and you re-verify with `gh auth status`.
+   authenticated and you re-verify with `${GH_CMD:-gh} auth status`.
 
 ### 1b. Verify repository access
 
@@ -52,7 +52,7 @@ Once you know the target repository (from the user's request or from Step 2),
 verify access:
 
 ```bash
-gh repo view <owner/repo> --json name,owner 2>&1
+${GH_CMD:-gh} repo view <owner/repo> --json name,owner 2>&1
 ```
 
 **If successful**: proceed to Step 2.
@@ -73,7 +73,7 @@ If the user references an existing issue (e.g., "update issue #42", "edit #15"):
 
 1. Fetch the existing issue:
    ```bash
-   gh issue view <number> --repo <owner/repo> --json title,body,labels,assignees,milestone
+   ${GH_CMD:-gh} issue view <number> --repo <owner/repo> --json title,body,labels,assignees,milestone
    ```
 2. Treat the existing issue content as the template.
 3. Skip the standard information-gathering questions in Step 3.
@@ -271,10 +271,10 @@ revise and present again.
 
 ### Create a new issue
 
-Build and execute the `gh issue create` command:
+Build and execute the `${GH_CMD:-gh} issue create` command:
 
 ```bash
-gh issue create \
+${GH_CMD:-gh} issue create \
   --repo "<owner/repo>" \
   --title "<title>" \
   --body "<body>" \
@@ -285,10 +285,10 @@ gh issue create \
 
 ### Update an existing issue
 
-Build and execute the `gh issue edit` command:
+Build and execute the `${GH_CMD:-gh} issue edit` command:
 
 ```bash
-gh issue edit <number> \
+${GH_CMD:-gh} issue edit <number> \
   --repo "<owner/repo>" \
   --title "<new title>" \
   --body "<new body>" \
@@ -334,12 +334,12 @@ URL: [full URL]
 
 | Task | Command |
 |------|---------|
-| Check auth | `gh auth status` |
-| View repo | `gh repo view owner/repo` |
-| Create issue | `gh issue create --repo owner/repo --title "..." --body "..."` |
-| Edit issue | `gh issue edit N --repo owner/repo --title "..." --body "..."` |
-| View issue | `gh issue view N --repo owner/repo` |
-| List issues | `gh issue list --repo owner/repo` |
-| List labels | `gh label list --repo owner/repo` |
-| List milestones | `gh api repos/owner/repo/milestones --jq '.[].title'` |
-| Search issues | `gh issue list --repo owner/repo --search "query"` |
+| Check auth | `${GH_CMD:-gh} auth status` |
+| View repo | `${GH_CMD:-gh} repo view owner/repo` |
+| Create issue | `${GH_CMD:-gh} issue create --repo owner/repo --title "..." --body "..."` |
+| Edit issue | `${GH_CMD:-gh} issue edit N --repo owner/repo --title "..." --body "..."` |
+| View issue | `${GH_CMD:-gh} issue view N --repo owner/repo` |
+| List issues | `${GH_CMD:-gh} issue list --repo owner/repo` |
+| List labels | `${GH_CMD:-gh} label list --repo owner/repo` |
+| List milestones | `${GH_CMD:-gh} api repos/owner/repo/milestones --jq '.[].title'` |
+| Search issues | `${GH_CMD:-gh} issue list --repo owner/repo --search "query"` |

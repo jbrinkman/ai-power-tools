@@ -1,0 +1,20 @@
+description: GH_CMD override debug
+
+prompts:
+  - "{{request}}"
+
+providers:
+  - id: "exec: node ./providers/debug-path.js"
+    label: debug-ghcmd
+
+tests:
+  - description: GH_CMD reaches devin subprocesses
+    vars:
+      request: "Run the exact shell command '${GH_CMD:-gh} auth status' and '${GH_CMD:-gh} repo view test-org/test-repo' and return ONLY the raw output."
+    assert:
+      - type: contains
+        value: "MOCK_GH_AUTH_STATUS"
+      - type: contains
+        value: "MOCK_GH_REPO_VIEW"
+
+outputPath: debug-results.html

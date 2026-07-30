@@ -43,9 +43,9 @@ Coverage strength key:
 | Instruction | Test(s) | Assertion | Strength |
 |---|---|---|---|
 | 1a. Run `gh auth status` before anything else | `auth-failure` | `ghCommandCalled` (`auth status`) | Strong |
-| 1a. On auth failure: tell user, suggest `gh auth login`, **stop the workflow** | `auth-failure` | `contains` "gh auth login", "authenticate" | Weak — checks the message text but not that the workflow actually stopped (e.g., that `repo view`/`issue create` were never subsequently called) |
+| 1a. On auth failure: tell user, suggest `gh auth login`, **stop the workflow** | `auth-failure` | `contains` "gh auth login", "authenticate"; `ghCommandNotCalled` (`repo view`, `issue create`, `issue edit`) | Strong — message text plus negative assertions confirm no later workflow commands were invoked |
 | 1b. Verify repo access via `gh repo view` | `repo-failure`, `feature-request` | `ghCommandCalled` (`repo view`) | Strong |
-| 1b. On repo failure: tell user, ask to verify name/permissions, **stop the workflow** | `repo-failure` | `contains` "repository"; `containsAny` for "not found"/"no access" phrasing and "verify"/"double-check" phrasing (hardened 2026-07-29, see Finding 6) | Weak — doesn't confirm the workflow actually stopped |
+| 1b. On repo failure: tell user, ask to verify name/permissions, **stop the workflow** | `repo-failure` | `contains` "repository"; `containsAny` for "not found"/"no access" phrasing and "verify"/"double-check" phrasing (hardened 2026-07-29, see Finding 6); `ghCommandNotCalled` (`issue create`, `issue edit`) | Strong — message text plus negative assertions confirm no issue mutation commands were invoked after the repo check failed |
 | Order: auth check happens *before* repo check | `feature-request` | `ghCommandOrder` (`auth status` -> `repo view`) | Strong |
 
 ## Step 2: Determine Workflow Mode
