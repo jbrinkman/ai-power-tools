@@ -9,11 +9,11 @@ description: >-
   Provides correct atlassian-cli command syntax to avoid trial-and-error.
 ---
 
-# Jira Issues via atlassian-cli
+# Jira Issues via Atlassian CLI (atlassian-cli)
 
-Use `atlassian-cli jira` to manage Jira issues. This skill provides
-command reference grounding — load the appropriate reference file before
-constructing commands.
+This skill targets the Atlassian CLI binary (`atlassian-cli`) and its `jira` subcommands (not a standalone `jira` binary).
+Use `atlassian-cli jira` to manage Jira issues. This skill provides command reference grounding —
+load the appropriate reference file before constructing commands.
 
 ## Step 1: Verify Prerequisites
 
