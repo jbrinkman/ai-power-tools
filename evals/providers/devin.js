@@ -169,9 +169,17 @@ if (isGraderMode) {
 } else {
   // ===== PROVIDER MODE =====
   // Call devin cli with single-turn mode and specified model.
-  // Use dangerous permission mode so the skill can execute shell commands
-  // (the mock gh script in PATH prevents touching the real GitHub CLI).
-  const result = runDevin(['-p', '--permission-mode', 'dangerous', '--model', model, '--', prompt], env);
+  // Use dangerous permission mode so the skill can execute shell commands.
+
+  // Replace 'gh ' at command positions with the mock path.
+  // This intercepts gh commands in code blocks while avoiding prose like "the gh CLI".
+  const mockGh = env.GH_CMD;
+  const processedPrompt = prompt
+    .replace(/^gh /gm, `${mockGh} `)
+    .replace(/\ngh /g, `\n${mockGh} `)
+    .replace(/`gh /g, `\`${mockGh} `);
+
+  const result = runDevin(['-p', '--permission-mode', 'dangerous', '--model', model, '--', processedPrompt], env);
 
   // Fold the mock's recorded gh invocations into the output so assertions
   // can read them directly instead of re-locating a shared log file on disk.
