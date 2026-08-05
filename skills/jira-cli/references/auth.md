@@ -68,7 +68,7 @@ atlassian-cli auth whoami [OPTIONS]
 | Flag | Required | Description |
 |------|----------|-------------|
 | `--profile` | No | Profile to use (defaults to default profile) |
-
+| `-f, --format` | No | Output format: `json`, `yaml`, `markdown`, `table` |
 ### Examples
 
 ```bash
