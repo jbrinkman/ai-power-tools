@@ -6,6 +6,7 @@
     skill: github-issue-creator
     id: auth-failure
   vars:
+    promptProcessor: processors/github-issue-creator.js
     request: "Create an issue in test-org/test-repo to add dark mode support."
     authFail: true
   assert:
@@ -35,6 +36,7 @@
     skill: github-issue-creator
     id: repo-failure
   vars:
+    promptProcessor: processors/github-issue-creator.js
     request: "Create an issue in test-org/test-repo to add dark mode support."
     repoFail: true
   assert:
@@ -95,6 +97,7 @@
     skill: github-issue-creator
     id: feature-request
   vars:
+    promptProcessor: processors/github-issue-creator.js
     request: "Create a feature request in test-org/test-repo to add dark mode support."
   assert:
     # Converted from containsAny to LLM-judge panels (2026-07-29) -- see
@@ -179,6 +182,7 @@
     skill: github-issue-creator
     id: bug-report
   vars:
+    promptProcessor: processors/github-issue-creator.js
     request: >
       File a bug report in test-org/test-repo. The checkout page crashes when a
       discount code is applied. Reference https://example.com/checkout-docs and
@@ -259,6 +263,7 @@
     skill: github-issue-creator
     id: update-issue
   vars:
+    promptProcessor: processors/github-issue-creator.js
     request: "Update issue #42 in test-org/test-repo to reflect the new API rate limiting requirements."
     expectedIssue: 42
   assert:

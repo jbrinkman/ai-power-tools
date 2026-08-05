@@ -171,13 +171,20 @@ if (isGraderMode) {
   // Call devin cli with single-turn mode and specified model.
   // Use dangerous permission mode so the skill can execute shell commands.
 
-  // Replace 'gh ' at command positions with the mock path.
-  // This intercepts gh commands in code blocks while avoiding prose like "the gh CLI".
-  const mockGh = env.GH_CMD;
-  const processedPrompt = prompt
-    .replace(/^gh /gm, `${mockGh} `)
-    .replace(/\ngh /g, `\n${mockGh} `)
-    .replace(/`gh /g, `\`${mockGh} `);
+  // Apply skill-specific prompt processor if specified in test vars.
+  // Format: processors/skill-name.js (relative to evals/)
+  let processedPrompt = prompt;
+  if (testVars.promptProcessor) {
+    const processorFullPath = path.resolve(__dirname, '..', testVars.promptProcessor);
+    try {
+      const processor = require(processorFullPath);
+      processedPrompt = processor(prompt, env);
+      debugLog(`applied prompt processor: ${testVars.promptProcessor}`);
+    } catch (e) {
+      console.error(`Failed to load prompt processor ${testVars.promptProcessor}: ${e.message}`);
+      process.exit(1);
+    }
+  }
 
   const result = runDevin(['-p', '--permission-mode', 'dangerous', '--model', model, '--', processedPrompt], env);
 
