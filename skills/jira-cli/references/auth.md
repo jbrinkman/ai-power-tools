@@ -23,11 +23,11 @@ atlassian-cli auth login --profile <PROFILE> --base-url <URL> --email <EMAIL> --
 ### Examples
 
 ```bash
-# Login with token inline
-atlassian-cli auth login --profile work --base-url https://mysite.atlassian.net --email user@example.com --token "your-api-token"
-
-# Login using env var (token read from ATLASSIAN_API_TOKEN)
+# Login using env var (recommended; avoids leaking tokens via shell history/process list)
+export ATLASSIAN_API_TOKEN="your-api-token"
 atlassian-cli auth login --profile work --base-url https://mysite.atlassian.net --email user@example.com
+
+# Avoid passing --token on the command line; it may be captured in shell history/CI logs
 
 # Login and set as default
 atlassian-cli auth login --profile work --base-url https://mysite.atlassian.net --email user@example.com --default
