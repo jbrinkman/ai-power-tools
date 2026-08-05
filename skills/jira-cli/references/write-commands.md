@@ -361,10 +361,10 @@ To add labels without removing existing ones, first fetch the current labels:
 
 ```bash
 # Get current labels
-CURRENT=$(atlassian-cli jira issue get PROJ-123 -f json | jq -r '.fields.labels')
+CURRENT=$(atlassian-cli jira issue get PROJ-123 -f json | jq -c '.fields.labels')
 
 # Append new label
-NEW=$(echo $CURRENT | jq '. + ["new-label"]')
+NEW=$(printf '%s\n' "$CURRENT" | jq -c '. + ["new-label"]')
 
 # Update issue
 atlassian-cli jira issue update PROJ-123 --field "labels=$NEW"
