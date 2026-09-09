@@ -1,1 +1,11 @@
 .DS_Store
+
+# Local Devin CLI skill-discovery symlink for running evals (see
+# evals/setup-skills-symlink.sh and evals/README.md) -- intentionally not
+# committed since symlinks don't survive a default-configured Windows git
+# checkout.
+/.agents/
+
+# Local Kiro CLI project settings (tool-search config, etc.) -- machine/user
+# specific, not shared project state.
+/.kiro/

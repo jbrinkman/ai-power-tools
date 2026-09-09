@@ -5,14 +5,30 @@
 // - Grader mode: Prompt is JSON array [{role, content}, ...]
 // - Provider mode: Prompt is plain text
 //
-// In provider mode, the script prepends the mock gh directory to PATH so the
-// skill under test does not touch the real GitHub CLI.
+// Provider mode invokes the skill under test via Devin CLI's real skill
+// discovery (see evals/setup-skills-symlink.sh and evals/README.md) rather
+// than splicing SKILL.md text into the prompt ourselves -- the prompt is
+// just "@skills:<name> <request>", and Devin reads the skill file from disk
+// itself, exactly as it would in a real session. This means the skill's
+// literal `gh ...` commands run for real (as far as Devin is concerned), so
+// the script prepends the mock gh directory to PATH and -- critically --
+// verifies gh actually resolves to the mock, in the exact env about to be
+// handed to Devin, before ever invoking the skill. See verifyMockGhOnPath().
+// A silent PATH-shadowing failure here would mean a test could hit the real
+// GitHub API (e.g. actually calling `gh issue create`), so this check aborts
+// loudly rather than proceeding on a hope.
 
 const { spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { wrapMockLog } = require('../lib/mockLog');
+
+// Repo root (two levels up from evals/providers/), used as the working
+// directory for the spawned `devin` process so its real skill discovery
+// (which scans .agents/skills/<name>/SKILL.md relative to cwd) finds the
+// .agents/skills symlink created by evals/setup-skills-symlink.sh.
+const repoRoot = path.resolve(__dirname, '..', '..');
 
 const prompt = process.argv[2];
 const options = process.argv[3];
@@ -81,6 +97,7 @@ function runDevin(args, env) {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout: DEVIN_TIMEOUT_MS,
+    cwd: repoRoot,
     env,
   });
   debugLog(`devin returned: status=${result.status} signal=${result.signal} error=${result.error && result.error.message} stdoutLength=${result.stdout ? result.stdout.length : 0} stderrLength=${result.stderr ? result.stderr.length : 0}`);
@@ -107,6 +124,33 @@ function runDevin(args, env) {
   return result;
 }
 
+// Verify, in the EXACT env about to be handed to `devin`, that `gh` actually
+// resolves to our mock binary via normal PATH lookup -- not the real GitHub
+// CLI. This is a hard safety gate, not a best-effort check: since the skill
+// under test now runs via Devin's real skill loading (see header comment),
+// its literal `gh issue create`/`gh issue edit` commands would hit the real
+// GitHub API for real if PATH-shadowing ever silently failed (e.g. Devin's
+// exec tool sanitizing env, or resolving gh some other way). Aborts loudly
+// rather than proceeding on a hope.
+function verifyMockGhOnPath(env) {
+  const expected = path.join(mockGhDir, 'gh');
+  const result = spawnSync('bash', ['-lc', 'command -v gh'], {
+    encoding: 'utf8',
+    cwd: repoRoot,
+    env,
+  });
+  const resolved = (result.stdout || '').trim();
+  if (result.status !== 0 || !resolved) {
+    console.error(`Safety check failed: could not resolve \`gh\` at all in the env about to be passed to devin (stderr: ${(result.stderr || '').trim()}). Refusing to run the skill -- it would have no gh to call, or worse, an unexpected one.`);
+    process.exit(1);
+  }
+  if (path.resolve(resolved) !== path.resolve(expected)) {
+    console.error(`Safety check failed: \`gh\` resolves to '${resolved}', not the mock at '${expected}'. Refusing to run the skill -- this would call the real GitHub CLI instead of the mock.`);
+    process.exit(1);
+  }
+  debugLog(`safety check passed: gh resolves to mock at ${resolved}`);
+}
+
 // Detect mode: if prompt looks like a JSON array, use grader mode.
 let isGraderMode = false;
 try {
@@ -121,9 +165,27 @@ try {
 // Build environment. In provider mode, prepend the mock gh directory to PATH
 // and give the mock a private log file for this invocation only, so its
 // recorded commands can never collide with another test's log.
+//
+// Two independent safety layers, because PATH-prepending alone was observed
+// to be insufficient: Devin's exec tool appears to run commands through a
+// shell that re-sources the user's real shell rc files (e.g. ~/.zshrc), and
+// a line like `export PATH="/opt/homebrew/bin:$PATH"` silently re-prepends
+// the real `gh`'s directory ahead of our injected mock directory *after* we
+// set PATH here.
+//   1. ZDOTDIR points zsh at an empty scratch directory instead of $HOME, so
+//      it finds none of the user's real .zshenv/.zprofile/.zshrc/.zlogin and
+//      therefore can't reorder PATH out from under us. (This does not cover
+//      every possible shell Devin might invoke internally -- see layer 2.)
+//   2. Even if some other shell/mechanism still reaches the real `gh`
+//      binary, it has no valid credentials to do anything destructive with:
+//      GH_CONFIG_DIR points at an empty scratch directory (so gh finds no
+//      stored auth), and GH_TOKEN/GITHUB_TOKEN are stripped from the child
+//      env entirely. A real `gh` invocation under this env can only fail
+//      with an auth error, not actually create/edit/read a real repo.
 const env = { ...process.env };
 let mockLogDir = null;
 let mockLogFile = null;
+let scratchDir = null;
 if (!isGraderMode) {
   env.PATH = `${mockGhDir}:${env.PATH}`;
   // Explicitly point the skill at the mock gh binary so we are not relying on
@@ -133,6 +195,13 @@ if (!isGraderMode) {
   mockLogDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gh-mock-'));
   mockLogFile = path.join(mockLogDir, 'gh-mock.log');
   env.GH_MOCK_LOG_FILE = mockLogFile;
+
+  scratchDir = fs.mkdtempSync(path.join(os.tmpdir(), 'devin-eval-scratch-'));
+  env.ZDOTDIR = scratchDir; // empty: zsh finds no real rc files to source
+  env.GH_CONFIG_DIR = path.join(scratchDir, 'gh-config'); // empty: no real gh auth
+  delete env.GH_TOKEN;
+  delete env.GITHUB_TOKEN;
+
   // Forward test vars to the mock gh script as env vars with a prefix.
   Object.entries(testVars).forEach(([key, value]) => {
     env[`PROMPTFOO_VAR_${key}`] = String(value);
@@ -170,23 +239,17 @@ if (isGraderMode) {
   // ===== PROVIDER MODE =====
   // Call devin cli with single-turn mode and specified model.
   // Use dangerous permission mode so the skill can execute shell commands.
+  //
+  // `prompt` is used as-is here -- promptfooconfig.yaml builds it as
+  // "@skills:<name> <request>" so Devin loads the real skill file from disk
+  // itself (see .agents/skills symlink, evals/setup-skills-symlink.sh).
+  // There is no SKILL.md text embedded in the prompt to rewrite anymore, so
+  // the old per-skill prompt processor (regex-rewriting literal `gh `
+  // commands to the mock's path) is retired -- PATH-shadowing plus the
+  // safety gate below is the sole mocking mechanism now.
+  verifyMockGhOnPath(env);
 
-  // Apply skill-specific prompt processor if specified in test vars.
-  // Format: processors/skill-name.js (relative to evals/)
-  let processedPrompt = prompt;
-  if (testVars.promptProcessor) {
-    const processorFullPath = path.resolve(__dirname, '..', testVars.promptProcessor);
-    try {
-      const processor = require(processorFullPath);
-      processedPrompt = processor(prompt, env);
-      debugLog(`applied prompt processor: ${testVars.promptProcessor}`);
-    } catch (e) {
-      console.error(`Failed to load prompt processor ${testVars.promptProcessor}: ${e.message}`);
-      process.exit(1);
-    }
-  }
-
-  const result = runDevin(['-p', '--permission-mode', 'dangerous', '--model', model, '--', processedPrompt], env);
+  const result = runDevin(['-p', '--permission-mode', 'dangerous', '--model', model, '--', prompt], env);
 
   // Fold the mock's recorded gh invocations into the output so assertions
   // can read them directly instead of re-locating a shared log file on disk.
@@ -197,6 +260,7 @@ if (isGraderMode) {
     // The mock was never invoked; leave the embedded log block empty.
   } finally {
     fs.rmSync(mockLogDir, { recursive: true, force: true });
+    fs.rmSync(scratchDir, { recursive: true, force: true });
   }
 
   debugLog(`done, mockLogLength=${mockLog.length}`);

@@ -12,14 +12,31 @@ module.exports = (output, context) => {
 
   const log = extractMockLog(output);
 
-  // Match `issue create`/`issue edit` invocations recorded by the gh mock
-  // (logged as `args: issue create --repo ...`) with a --repo flag.
-  const matches = log.match(/^args:\s*issue (?:create|edit)(?:\s+\d+)?[\s\S]*?--repo\s+["']?([^"'\s]+)["']?/m);
+  // Configurable command pattern via config.command. Supports:
+  //   - "issue view" → matches `issue view <number> --repo ...`
+  //   - "issue create" → matches `issue create --repo ...`
+  //   - "issue edit" → matches `issue edit <number> --repo ...`
+  //   - undefined (default) → matches `issue create` or `issue edit` (backward compat)
+  const command = context?.config?.command;
+  let pattern;
+  let label;
+  if (command) {
+    // Escape the command for use in a regex, allow optional number after it.
+    const escaped = command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    pattern = new RegExp(`^args:\\s*${escaped}(?:\\s+\\d+)?[\\s\\S]*?--repo\\s+["']?([^"'\\s]+)["']?`, 'm');
+    label = command;
+  } else {
+    // Default: match issue create or issue edit (backward compatible).
+    pattern = /^args:\s*issue (?:create|edit)(?:\s+\d+)?[\s\S]*?--repo\s+["']?([^"'\s]+)["']?/m;
+    label = 'issue create/edit';
+  }
+
+  const matches = log.match(pattern);
   if (!matches) {
     return {
       pass: false,
       score: 0,
-      reason: 'No gh issue create/edit command with --repo found in the mock gh log',
+      reason: `No gh ${label} command with --repo found in the mock gh log`,
     };
   }
 
@@ -29,7 +46,7 @@ module.exports = (output, context) => {
     pass,
     score: pass ? 1 : 0,
     reason: pass
-      ? `gh command uses expected repo: ${actualRepo}`
-      : `gh command uses repo ${actualRepo}, expected ${expectedRepo}`,
+      ? `gh ${label} command uses expected repo: ${actualRepo}`
+      : `gh ${label} command uses repo ${actualRepo}, expected ${expectedRepo}`,
   };
 };

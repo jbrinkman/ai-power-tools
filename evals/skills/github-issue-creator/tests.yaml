@@ -1,12 +1,29 @@
 # Per-skill test cases for github-issue-creator.
 # These tests reference the source skill file directly so the prompt under test
 # always matches the skill definition.
-- description: Step 1a — gh not authenticated
+#
+# Tests are grouped by, and their metadata.id is prefixed with, the primary
+# step number they exercise (e.g. "1-auth-failure" targets Step 1). Since the
+# 2026-08-06 progressive-disclosure split, "Step N" means:
+#   - Steps 1-2 live in skills/github-issue-creator/SKILL.md (shared by both modes)
+#   - Steps 3-7 live in skills/github-issue-creator/references/create-flow.md (create mode)
+#   - Steps 3-7 live in skills/github-issue-creator/references/update-flow.md (update mode)
+# Step numbers can therefore repeat across create-flow and update-flow tests
+# (e.g. two different tests both prefixed "3-", one per flow) — see
+# COVERAGE.md for the full file-structure breakdown.
+#
+# YAML anchors for the LLM-judge providers are defined in the first test that
+# uses them (Step 1b) and reused throughout via aliases.
+
+# =============================================================================
+# Step 1: Verify Prerequisites (SKILL.md)
+# =============================================================================
+
+- description: "Step 1a — auth failure stops workflow"
   metadata:
     skill: github-issue-creator
-    id: auth-failure
+    id: 1-auth-failure
   vars:
-    promptProcessor: processors/github-issue-creator.js
     request: "Create an issue in test-org/test-repo to add dark mode support."
     authFail: true
   assert:
@@ -21,22 +38,16 @@
     - type: javascript
       value: file://assertions/ghCommandNotCalled.js
       config:
-        forbiddenCommand: repo view
-    - type: javascript
-      value: file://assertions/ghCommandNotCalled.js
-      config:
-        forbiddenCommand: issue create
-    - type: javascript
-      value: file://assertions/ghCommandNotCalled.js
-      config:
-        forbiddenCommand: issue edit
+        forbiddenCommand:
+          - repo view
+          - issue create
+          - issue edit
 
-- description: Step 1b — repo not found or no access
+- description: "Step 1b — repo not found stops workflow"
   metadata:
     skill: github-issue-creator
-    id: repo-failure
+    id: 1-repo-failure
   vars:
-    promptProcessor: processors/github-issue-creator.js
     request: "Create an issue in test-org/test-repo to add dark mode support."
     repoFail: true
   assert:
@@ -86,18 +97,113 @@
     - type: javascript
       value: file://assertions/ghCommandNotCalled.js
       config:
-        forbiddenCommand: issue create
-    - type: javascript
-      value: file://assertions/ghCommandNotCalled.js
-      config:
-        forbiddenCommand: issue edit
+        forbiddenCommand:
+          - issue create
+          - issue edit
 
-- description: Minimal feature request
+# =============================================================================
+# Step 2: Determine Workflow Mode (SKILL.md)
+# =============================================================================
+
+- description: "Step 2 — update existing issue"
   metadata:
     skill: github-issue-creator
-    id: feature-request
+    id: 2-update-issue
   vars:
-    promptProcessor: processors/github-issue-creator.js
+    request: "Update issue #42 in test-org/test-repo to reflect the new API rate limiting requirements."
+    expectedIssue: 42
+  assert:
+    # Converted from containsAny to an LLM-judge panel (2026-07-29) -- see
+    # COVERAGE.md Finding 7 / PLAN.md. Same rationale and judge panel as
+    # above. Left as a plain contains: "rate limiting" below, since that is
+    # reflecting a specific technical term straight from the user's own
+    # request, not an open-ended paraphrasable concept.
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: update_issue_context_swe
+          provider: *judgeSwe
+          value: &updateIssueContextRubric >
+            The response makes clear it is working with the existing issue #42, e.g. by
+            referencing its number, calling it the existing issue, or describing this as an
+            update.
+        - type: llm-rubric
+          metric: update_issue_context_codex
+          provider: *judgeCodex
+          value: *updateIssueContextRubric
+        - type: llm-rubric
+          metric: update_issue_context_gemini
+          provider: *judgeGemini
+          value: *updateIssueContextRubric
+    - type: contains
+      value: "rate limiting"
+    - type: javascript
+      value: file://assertions/ghCommandCalled.js
+      config:
+        expectedCommand: "issue view 42"
+
+- description: "Step 2 — update mode uses --repo on issue view"
+  metadata:
+    skill: github-issue-creator
+    id: 2-update-mode-repo-flag
+  vars:
+    request: "Update issue #42 in test-org/test-repo to reflect the new API rate limiting requirements."
+    expectedIssue: 42
+  assert:
+    # The skill MUST pass --repo to the issue view command so it works
+    # regardless of what directory the user happens to be in.
+    - type: javascript
+      value: file://assertions/ghCommandUsesRepo.js
+      config:
+        command: "issue view"
+
+# =============================================================================
+# Step 3: Gather Information / Clarify Requested Change
+# =============================================================================
+
+# --- Create flow (references/create-flow.md) --------------------------------
+
+- description: "Step 3 (create flow) — create mode enters information gathering"
+  metadata:
+    skill: github-issue-creator
+    id: 3-create-mode-enters-step3
+  vars:
+    request: "Create a feature request in test-org/test-repo to add dark mode support."
+  assert:
+    # When no existing issue number is referenced, the skill should enter
+    # the Step 3 information-gathering workflow — asking questions to
+    # collect requirements rather than jumping straight to a final draft.
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: create_mode_step3_swe
+          provider: *judgeSwe
+          value: &createModeStep3Rubric >
+            The response demonstrates that the skill has entered an information-gathering
+            phase appropriate for creating a new issue. Evidence includes: asking the user
+            questions to collect requirements (e.g., about templates, user story, issue type,
+            constraints, references, labels, assignees, or milestone), OR presenting a
+            summary of gathered information and asking for confirmation before proceeding.
+            The response should NOT skip directly to presenting a final drafted issue without
+            any question-asking or requirements-gathering step. Simply acknowledging the
+            request and immediately producing a complete issue without first asking any
+            clarifying or requirements questions would NOT satisfy this criterion.
+        - type: llm-rubric
+          metric: create_mode_step3_codex
+          provider: *judgeCodex
+          value: *createModeStep3Rubric
+        - type: llm-rubric
+          metric: create_mode_step3_gemini
+          provider: *judgeGemini
+          value: *createModeStep3Rubric
+
+- description: "Step 3 (create flow) — minimal feature request"
+  metadata:
+    skill: github-issue-creator
+    id: 3-feature-request
+  vars:
     request: "Create a feature request in test-org/test-repo to add dark mode support."
   assert:
     # Converted from containsAny to LLM-judge panels (2026-07-29) -- see
@@ -177,12 +283,11 @@
           - "auth status"
           - "repo view"
 
-- description: Bug report with references and constraints
+- description: "Step 3 (create flow) — bug report with references and constraints"
   metadata:
     skill: github-issue-creator
-    id: bug-report
+    id: 3-bug-report
   vars:
-    promptProcessor: processors/github-issue-creator.js
     request: >
       File a bug report in test-org/test-repo. The checkout page crashes when a
       discount code is applied. Reference https://example.com/checkout-docs and
@@ -258,41 +363,297 @@
     - type: contains
       value: "https://github.com/test-org/test-repo/issues/7"
 
-- description: Update existing issue
+- description: "Step 3 (create flow) — asks for repository when not provided"
   metadata:
     skill: github-issue-creator
-    id: update-issue
+    id: 3-missing-repository
   vars:
-    promptProcessor: processors/github-issue-creator.js
-    request: "Update issue #42 in test-org/test-repo to reflect the new API rate limiting requirements."
-    expectedIssue: 42
+    # Deliberately omits the target repo (3b.1) so the skill must ask for it
+    # rather than proceeding with an unconfirmed guess.
+    #
+    # NOTE: does NOT forbid `repo view` here (only `issue create`). Forbidding
+    # `repo view` was tried and removed (2026-08-07): this harness runs Devin
+    # single-shot (`-p`), so a model that asks the user to confirm a
+    # detected/ambient repository (e.g. from the real ai-power-tools repo's
+    # own git remote, since evals now run via real skill invocation from the
+    # repo root -- see COVERAGE.md Finding 9) has no real second turn to wait
+    # on, and may self-answer its own question and proceed to verify it in
+    # the same completion. That's the same "Untestable (single-turn)"
+    # limitation as other wait-for-confirmation instructions (Finding 4) --
+    # not something skill wording can fix. `issue create` stays forbidden
+    # since that's still meaningfully enforceable: the skill should not
+    # reach actual issue creation without the repo being genuinely settled,
+    # regardless of how it got there.
+    request: "Create a feature request to add dark mode support."
   assert:
-    # Converted from containsAny to an LLM-judge panel (2026-07-29) -- see
-    # COVERAGE.md Finding 7 / PLAN.md. Same rationale and judge panel as
-    # above. Left as a plain contains: "rate limiting" below, since that is
-    # reflecting a specific technical term straight from the user's own
-    # request, not an open-ended paraphrasable concept.
+    - type: javascript
+      value: file://assertions/ghCommandCalled.js
+      config:
+        expectedCommand: auth status
+    - type: javascript
+      value: file://assertions/ghCommandNotCalled.js
+      config:
+        forbiddenCommand: issue create
     - type: assert-set
       threshold: 0.66
       assert:
         - type: llm-rubric
-          metric: update_issue_context_swe
+          metric: missing_repository_asks_swe
           provider: *judgeSwe
-          value: &updateIssueContextRubric >
-            The response makes clear it is working with the existing issue #42, e.g. by
-            referencing its number, calling it the existing issue, or describing this as an
-            update.
+          value: &missingRepositoryRubric >
+            The response asks the user which GitHub repository the issue should be created in
+            (e.g., "What repository should this issue be created in?" or similar), rather than
+            guessing, assuming a default, or fabricating a repository name. It is acceptable for
+            the response to also ask other Step 3 questions, as long as asking for the repository
+            is among them.
         - type: llm-rubric
-          metric: update_issue_context_codex
+          metric: missing_repository_asks_codex
           provider: *judgeCodex
-          value: *updateIssueContextRubric
+          value: *missingRepositoryRubric
         - type: llm-rubric
-          metric: update_issue_context_gemini
+          metric: missing_repository_asks_gemini
           provider: *judgeGemini
-          value: *updateIssueContextRubric
-    - type: contains
-      value: "rate limiting"
+          value: *missingRepositoryRubric
+
+- description: "Step 3 (create flow) — asks for issue type when ambiguous"
+  metadata:
+    skill: github-issue-creator
+    id: 3-ambiguous-issue-type
+  vars:
+    # Deliberately does not say "feature request", "bug", "task", etc. (3b.2)
+    # so the skill must ask rather than silently assuming a type.
+    request: "Create an issue in test-org/test-repo about improving load times on the dashboard page."
+  assert:
     - type: javascript
       value: file://assertions/ghCommandCalled.js
       config:
-        expectedCommand: "issue view 42"
+        expectedCommand: repo view
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: ambiguous_issue_type_asks_swe
+          provider: *judgeSwe
+          value: &ambiguousIssueTypeRubric >
+            The response asks the user what type of issue this is (e.g., feature request, bug
+            report, task, documentation), because the request itself does not make the type
+            clear. The response does NOT silently assume a specific issue type without asking.
+        - type: llm-rubric
+          metric: ambiguous_issue_type_asks_codex
+          provider: *judgeCodex
+          value: *ambiguousIssueTypeRubric
+        - type: llm-rubric
+          metric: ambiguous_issue_type_asks_gemini
+          provider: *judgeGemini
+          value: *ambiguousIssueTypeRubric
+
+- description: "Step 3 (create flow) — gathers and reflects additional context"
+  metadata:
+    skill: github-issue-creator
+    id: 3-additional-context
+  vars:
+    # Supplies unsolicited additional context (3b.6: deadline + related issue)
+    # that the skill should acknowledge/incorporate rather than ignore.
+    request: >
+      Create a feature request in test-org/test-repo to add dark mode support.
+      Note: this needs to ship before the Q3 planning review, and it's related
+      to issue #58.
+  assert:
+    - type: contains
+      value: "#58"
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: additional_context_addressed_swe
+          provider: *judgeSwe
+          value: &additionalContextRubric >
+            The response acknowledges or incorporates the additional context the user provided
+            (the Q3 planning review deadline and/or the relationship to issue #58) -- for example
+            by asking a follow-up about it, noting it in a summary, or including it in the drafted
+            issue -- rather than ignoring it entirely.
+        - type: llm-rubric
+          metric: additional_context_addressed_codex
+          provider: *judgeCodex
+          value: *additionalContextRubric
+        - type: llm-rubric
+          metric: additional_context_addressed_gemini
+          provider: *judgeGemini
+          value: *additionalContextRubric
+
+- description: "Step 3 (create flow) — gathers and reflects labels, assignees, and milestone"
+  metadata:
+    skill: github-issue-creator
+    id: 3-labels-assignees-milestone
+  vars:
+    # Supplies labels/assignees/milestone up front (3b.7-3b.9) so we can check
+    # they're actually incorporated into the drafted issue, not just silently
+    # dropped. Values are literal technical terms taken from the user's own
+    # request, so plain `contains` is appropriate here (per the convention
+    # used elsewhere in this suite -- see COVERAGE.md Finding 6).
+    request: >
+      Create a feature request in test-org/test-repo to add dark mode support.
+      Label it "enhancement", assign it to @octocat, and put it in the "v2.0"
+      milestone.
+  assert:
+    - type: contains
+      value: "enhancement"
+    - type: contains
+      value: "octocat"
+    - type: contains
+      value: "v2.0"
+
+- description: "Step 3c (create flow) — custom template-driven gathering"
+  metadata:
+    skill: github-issue-creator
+    id: 3-custom-template
+  vars:
+    # Provides inline guidelines with non-default section names, so the
+    # skill must derive its questions/structure from them (3c) instead of
+    # falling back to the default User Story / Overview / ... structure.
+    request: >
+      Create an issue in test-org/test-repo using this structure: "Summary",
+      "Steps to Reproduce", "Expected Result", "Actual Result". The issue:
+      clicking the export button downloads an empty CSV file instead of the
+      report data.
+  assert:
+    - type: contains
+      value: "Steps to Reproduce"
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: custom_template_followed_swe
+          provider: *judgeSwe
+          value: &customTemplateRubric >
+            The response follows the user-provided template structure ("Summary", "Steps to
+            Reproduce", "Expected Result", "Actual Result") -- either by asking questions derived
+            from those sections, or by presenting a drafted issue organized into those sections --
+            rather than falling back to the skill's default structure (User Story, Overview,
+            Problem/Need, Proposed Solution, Value/Impact, Acceptance Criteria).
+        - type: llm-rubric
+          metric: custom_template_followed_codex
+          provider: *judgeCodex
+          value: *customTemplateRubric
+        - type: llm-rubric
+          metric: custom_template_followed_gemini
+          provider: *judgeGemini
+          value: *customTemplateRubric
+
+# --- Update flow (references/update-flow.md) ---------------------------------
+
+- description: "Step 3 (update flow) — update mode skips standard info-gathering"
+  metadata:
+    skill: github-issue-creator
+    id: 3-update-mode-skips-gathering
+  vars:
+    request: "Update issue #42 in test-org/test-repo to reflect the new API rate limiting requirements."
+    expectedIssue: 42
+  assert:
+    # In update mode the skill should NOT ask the standard Step 3
+    # information-gathering questions (issue type, user story format,
+    # reference URLs, technical constraints, etc.) because the existing
+    # issue already provides the baseline content.
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: update_skips_step3_swe
+          provider: *judgeSwe
+          value: &updateSkipsStep3Rubric >
+            The response does NOT ask the user standard issue-creation questions such as:
+            what type of issue this is, to describe a user story or problem statement, for
+            reference URLs, for technical constraints, for additional context, for labels,
+            for assignees, or for a milestone. In update mode, these standard
+            information-gathering questions should be skipped because the existing issue
+            already has content. A brief clarifying question specifically about the update
+            request itself (e.g., "What specifically should change about rate limiting?")
+            is acceptable and does NOT count as asking standard Step 3 questions.
+        - type: llm-rubric
+          metric: update_skips_step3_codex
+          provider: *judgeCodex
+          value: *updateSkipsStep3Rubric
+        - type: llm-rubric
+          metric: update_skips_step3_gemini
+          provider: *judgeGemini
+          value: *updateSkipsStep3Rubric
+
+- description: "Step 3 (update flow) — update mode asks only clarifying questions"
+  metadata:
+    skill: github-issue-creator
+    id: 3-update-mode-clarifying-only
+  vars:
+    request: "Update issue #42 in test-org/test-repo to reflect the new API rate limiting requirements."
+    expectedIssue: 42
+  assert:
+    # Any questions the skill asks should be narrowly focused on resolving
+    # ambiguity in THIS update request — not broad open-ended gathering.
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: update_clarifying_only_swe
+          provider: *judgeSwe
+          value: &updateClarifyingOnlyRubric >
+            If the response asks any questions at all, they are narrowly focused on
+            clarifying ambiguity in the specific update request (e.g., asking what the
+            new rate limiting requirements are, or how they differ from existing content).
+            The response does NOT ask broad, open-ended questions that would be appropriate
+            for creating a new issue from scratch (e.g., "What type of issue is this?",
+            "Describe your user story", "Any reference URLs?"). It is also acceptable for
+            the response to ask no questions at all and proceed directly with proposed changes.
+        - type: llm-rubric
+          metric: update_clarifying_only_codex
+          provider: *judgeCodex
+          value: *updateClarifyingOnlyRubric
+        - type: llm-rubric
+          metric: update_clarifying_only_gemini
+          provider: *judgeGemini
+          value: *updateClarifyingOnlyRubric
+
+# =============================================================================
+# Step 6: Review and Approve (update flow — references/update-flow.md)
+# =============================================================================
+
+- description: "Step 6 (update flow) — update mode shows diff against current content"
+  metadata:
+    skill: github-issue-creator
+    id: 6-update-mode-shows-diff
+  vars:
+    # Fully specified, unlike the other update-mode tests above: this request
+    # deliberately supplies enough detail to draft the update without asking
+    # a clarifying question first, so this test can isolate diff-formatting
+    # behavior in Step 6 without colliding with 3-update-mode-clarifying-only
+    # (which needs an ambiguous request to exercise clarifying questions).
+    request: >
+      Update issue #42 in test-org/test-repo: change the title to "Add API
+      rate limiting to REST endpoints", and update the body to describe a
+      token-bucket rate limiter of 1000 requests/hour per client, returning
+      HTTP 429 with a Retry-After header when exceeded. Change the label
+      from bug to enhancement.
+    expectedIssue: 42
+  assert:
+    # The skill must present proposed changes in a way that highlights the
+    # delta vs. the existing issue — not just dump the new version.
+    - type: assert-set
+      threshold: 0.66
+      assert:
+        - type: llm-rubric
+          metric: update_shows_diff_swe
+          provider: *judgeSwe
+          value: &updateShowsDiffRubric >
+            The response presents the proposed changes in a way that clearly shows what
+            is different from the current issue content. This could be a unified diff
+            format, a before/after comparison, strikethrough text showing removals and
+            new text showing additions, or any other format that makes the delta between
+            the existing issue and the proposed update visually clear. Simply showing the
+            new version without any indication of what changed does NOT satisfy this
+            criterion.
+        - type: llm-rubric
+          metric: update_shows_diff_codex
+          provider: *judgeCodex
+          value: *updateShowsDiffRubric
+        - type: llm-rubric
+          metric: update_shows_diff_gemini
+          provider: *judgeGemini
+          value: *updateShowsDiffRubric

@@ -6,6 +6,11 @@ tasks:
     cmds:
       - task --list
 
+  setup:
+    desc: 'One-time setup after cloning: symlink .agents/skills to ../skills so Devin CLI can discover skills for real (see README.md)'
+    cmds:
+      - "./setup-skills-symlink.sh"
+
   eval:github-issue-creator:
     desc: 'Evaluate the github-issue-creator skill. Pass extra promptfoo flags after --, e.g. task eval:github-issue-creator -- --filter-metadata id=feature-request'
     cmds:

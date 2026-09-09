@@ -1,21 +1,27 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
 # Master Promptfoo config for evaluating ai-power-tools skills.
-# This config loads a skill file dynamically and runs per-skill test suites.
+# This config invokes each skill via Devin CLI's real skill-loading
+# mechanism and runs per-skill test suites.
 
 description: ai-power-tools skills evaluation framework
 
-# The prompt loads the skill file and appends the user request. skillFile is
-# loaded via the file:// prefix (promptfoo's actual file-reference syntax --
-# a leading "@" is NOT a promptfoo convention and was previously silently
-# passed through as literal text, meaning Devin never received the real
-# skill content -- see PLAN.md "Known issues and fixes").
+# "@skills:<name>" is Devin CLI's real skill-mention syntax -- it tells Devin
+# to load that skill from disk itself (via the .agents/skills symlink; see
+# evals/setup-skills-symlink.sh and evals/README.md), exactly as a real
+# session would, rather than us splicing SKILL.md text into the prompt
+# ourselves. Since this skill's SKILL.md/references files contain no
+# $ARGUMENTS/$1 placeholders, {{request}} is appended after the skill's own
+# content rather than substituted into it (see Devin CLI docs: "How Devin
+# Uses Skills" -> "Mention a skill in your prompt"). Requires having run
+# `task setup` (or evals/setup-skills-symlink.sh) at least once -- see
+# evals/README.md.
 prompts:
-  - "{{skillFile}}\n\n## User Request\n\n{{request}}"
+  - "@skills:{{skillName}} {{request}}"
 
 # Default test vars and grader configuration used for all tests.
 defaultTest:
   vars:
-    skillFile: file://../skills/github-issue-creator/SKILL.md
+    skillName: github-issue-creator
     expectedRepo: test-org/test-repo
   options:
     provider: "exec: node ./providers/devin.js"
