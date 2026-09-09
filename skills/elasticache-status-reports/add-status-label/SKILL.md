@@ -1,13 +1,18 @@
 ---
 name: add-status-label
 description: >
-  Add a new status label to a task in a status report. Use when asked to
-  add status, update status, change status, set status, mark as, or add label
-  for a task. Supports statuses: Not Started, In Progress, In Review, Submitted,
-  Done, Blocked, Paused.
+  Add a new status transition to a task in a status report. Use when the user
+  wants to record progress on a task by adding a new status (e.g., moving from
+  In Progress to Submitted). This adds a transition arrow and a **New** marker.
+  Do NOT use when the user wants to correct or fix an existing status label —
+  that is a simple edit, not a transition.
 ---
 
 Add a new status label to an existing task line in a status report markdown file.
+
+## Line Format Reference
+
+#[[file:../shared/report-format.md]]
 
 ## Available Statuses
 
