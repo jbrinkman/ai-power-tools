@@ -1,5 +1,5 @@
 ---
-name: new-status-report
+name: status-new-report
 description: Create a new weekly status report. Use when asked to "create status report", "new status report", "weekly report", or "create report". Copies the latest report, renames it with the specified or current date, and updates the H1 title date.
 ---
 

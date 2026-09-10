@@ -1,5 +1,5 @@
 ---
-name: finalize-status-report
+name: status-finalize-report
 description: >
   Finalize and submit the latest status report. Commits all outstanding changes,
   pushes the branch, and creates a pull request using the report's H1 title.

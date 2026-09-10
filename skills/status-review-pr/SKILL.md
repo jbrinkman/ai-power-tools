@@ -1,5 +1,5 @@
 ---
-name: review-status-pr
+name: status-review-pr
 description: >
   Review PRs in Submitted and Merged tables of status reports. Check PR statuses,
   move closed/merged PRs to appropriate tables, and promote merged PRs that have

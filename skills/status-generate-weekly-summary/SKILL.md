@@ -1,5 +1,5 @@
 ---
-name: generate-weekly-summary
+name: status-generate-weekly-summary
 description: >
   Generate the "This Week's Progress" section and executive summary for a status
   report. Use when asked to "generate summary", "update progress", "write executive
