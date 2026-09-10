@@ -1,5 +1,5 @@
 ---
-name: review-status-report
+name: status-review-report
 description: >
   Review the latest status report for common issues before submitting a PR.
   Use when asked to "review status report", "check report", "review report",

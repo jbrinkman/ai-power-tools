@@ -1,5 +1,5 @@
 ---
-name: new-status-report
+name: status-new-report
 description: Create a new weekly status report. Use when asked to "create status report", "new status report", "weekly report", or "create report". Copies the latest report, renames it with the specified or current date, and updates the H1 title date.
 ---
 
@@ -65,6 +65,8 @@ After copying and renaming the file, clean up content that should not carry over
    - Before: `<span class="green">In Progress</span> &rarr; <span class="green">In Review</span>`
    - After: `<span class="green">In Review</span>`
 4. Clean up any resulting double spaces or leading/trailing whitespace on affected lines.
+5. Reset the `## Lowlights` section: replace all content between the `## Lowlights` heading and the next `##` heading with a single `* none` line.
+6. Reset the `## Insights` section: replace all content between the `## Insights` heading and the next `##` heading with a single `* none` line.
 
 ## Step 10: Show Diff for Visual Confirmation
 
