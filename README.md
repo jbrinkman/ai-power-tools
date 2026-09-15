@@ -25,6 +25,7 @@ individually** (not the parent `skills/` folder). Example:
 
 ```bash
 # From a clone of this repo:
+mkdir -p "$HOME/.kiro/skills" "$HOME/.kiro/crew/skills"
 for d in skills/*/; do
   name=$(basename "$d")
   ln -sfn "$PWD/$d" "$HOME/.kiro/skills/$name"
