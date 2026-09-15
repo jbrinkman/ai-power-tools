@@ -228,6 +228,27 @@ lost:
   (e.g. you recommended Reject but the user approved a fix, or vice versa), so
   the reasoning is on record.
 
+## Step 8: Re-check for remaining unresolved threads
+
+The Step 3 query fetches up to 100 threads (`reviewThreads(first:100)`). That is
+plenty for a normal PR, but rather than paginate, confirm completeness at the end
+by re-counting:
+
+1. Re-run the Step 3 GraphQL query and count threads where `isResolved` is
+   `false`.
+2. If the count is **0**, the pass is complete.
+3. If the count is **greater than 0**, some threads are still open. That happens
+   when the user Skipped/deferred a comment, or — rarely — when the PR had more
+   than 100 threads and the first fetch was truncated. Report the remaining
+   count and suggest running the skill again to work through them:
+
+   > N review threads are still unresolved. Run the skill again on this PR to
+   > continue — resolved threads drop out of the next fetch, so a re-run picks up
+   > exactly what is left (including any beyond the first 100).
+
+Because each resolved thread disappears from the next `first:100` fetch, repeated
+runs converge on zero without any pagination logic in the skill.
+
 ## Exit criteria
 
 - Every unresolved review thread has been presented with an independent validity
@@ -238,3 +259,5 @@ lost:
   and a resolved thread — no silent closes.
 - The final summary table (including the assessment column) and the list of
   comments left open have been shown.
+- A final re-count of unresolved threads has been run; if any remain, the count
+  was reported and a re-run of the skill was suggested.
