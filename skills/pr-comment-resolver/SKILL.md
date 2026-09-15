@@ -1,6 +1,6 @@
 ---
 name: pr-comment-resolver
-description: Work through the review comments on a GitHub pull request one at a time, addressing each. Use when asked to resolve, address, or respond to PR review comments/feedback, or to "fix the review comments" on a pull request. For each comment: summarize it, propose a fix, and wait for the user to approve, skip, or supply an alternative before acting. On an approved fix, commit the change, reply to the comment with a commit reference, and mark the thread resolved. Ends with a table of every comment and its resolution.
+description: Work through the review comments on a GitHub pull request one at a time, addressing each. Use when asked to resolve, address, or respond to PR review comments/feedback, or to "fix the review comments" on a pull request. For each comment: summarize it, independently assess whether the comment is valid (agree/partially agree/disagree), and propose a fix — then wait for the user to approve, reject, skip, or supply an alternative. On an approved fix, commit the change, reply to the comment with a commit reference, and mark the thread resolved; on a reject, reply with the reasoning and resolve. Ends with a table of every comment, the assessment, and its resolution.
 ---
 
 <!--
@@ -96,22 +96,48 @@ For each unresolved thread, in order, present:
 - **Location**: `path:line` (or "general comment" if not file-anchored).
 - **Reviewer**: the comment author's login.
 - **Summary**: 1–3 sentences restating what the reviewer is asking for and why.
-- **Proposed fix**: The single best change that addresses the comment. Commit
-  to one clear action — do not present multiple options joined by "or". Show the
-  concrete diff or the exact edit you intend to make so the user can judge it.
+- **Assessment**: Your own independent judgment of whether the comment is
+  valid — do not assume a reviewer (human or AI bot) is correct. You are the
+  first line of defense against invalid, mistaken, or low-value comments. Read
+  the actual code and the diff context before judging, and take an explicit
+  stance:
+  - **Agree** — the comment identifies a real issue worth fixing.
+  - **Partially agree** — there is a real concern, but the framing, scope, or
+    suggested remedy is off; note what you'd do differently.
+  - **Disagree** — the comment is incorrect, based on a misreading, addresses
+    code the PR did not change, is already handled elsewhere, is a stylistic
+    preference that conflicts with the project's conventions, or is otherwise
+    not worth acting on.
+
+  State the stance in one line, then give a brief reason grounded in the code
+  (cite the relevant line or fact). Be fair to the reviewer: a comment being
+  from an AI bot is not by itself a reason to disagree, and a comment being from
+  a senior human is not by itself a reason to agree — judge the substance.
+- **Proposed fix**: The single best change that addresses the comment, when you
+  Agree or Partially agree. Commit to one clear action — do not present multiple
+  options joined by "or". Show the concrete diff or the exact edit you intend to
+  make so the user can judge it. When you **Disagree**, propose *no* fix; instead
+  propose a short, respectful reply explaining why the comment does not need a
+  change, and recommend Reject.
 - **Alternatives** (optional): brief bullets of other viable approaches, shown
   only to help the user decide. Not applied unless chosen.
+
+Your assessment is a recommendation. The user always makes the final call — a
+comment you disagree with is still fixed if the user approves a fix, and a
+comment you agree with is still skipped or rejected if the user says so.
 
 Then ask for a decision and **wait** — do not proceed until the user responds:
 
 | Decision | Action |
 |----------|--------|
 | **Approve** | Apply the proposed fix (Step 5). |
-| **Skip** | Leave the thread unaddressed. Record the reason. Move on. |
+| **Reject** | You (and usually the user) judged the comment invalid. Apply no code change. Post the reply explaining why no change is needed, then resolve the thread (Step 5, reject path). Record it as rejected with the reason. |
+| **Skip** | Leave the thread unaddressed and unresolved for now (defer, needs more thought, out of scope for this pass). Record the reason. Move on. |
 | **Alternative** | The user supplies a different fix. Apply that instead (Step 5). |
 
-Never move to the next comment until the current one is Approved, Skipped, or
-resolved with an Alternative.
+Lead with your recommended decision (e.g. "I recommend **Reject** because…"),
+but never move to the next comment until the user has chosen Approve, Reject,
+Skip, or Alternative for the current one.
 
 ## Step 5: Apply an approved (or alternative) fix
 
@@ -150,11 +176,30 @@ mutation($threadId:ID!){
 }' -f threadId=PRRT_THREAD_NODE_ID
 ```
 
-For a **Skipped** comment, do none of the above — just record it as unaddressed
-with the user's reason.
+For a **Rejected** comment (the comment is invalid / needs no code change), do
+**not** edit, commit, or push. Instead:
 
-Record for each comment: location, reviewer, decision, commit SHA (if any), and
-a one-line note on the resolution.
+1. Reply to the thread with a respectful explanation of why no change is needed,
+   grounded in the code — do not just close it silently:
+
+```bash
+gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments \
+  --method POST \
+  -f body="Thanks for the review. I don't think a change is needed here: <clear, specific reason>." \
+  -F in_reply_to=ORIGINAL_COMMENT_DATABASE_ID
+```
+
+2. Resolve the thread with the same `resolveReviewThread` mutation shown above.
+
+Record it as **Rejected** with the reason. If the user is uncertain about a
+rejection, leave the thread unresolved and treat it as Skipped instead so a human
+can weigh in.
+
+For a **Skipped** comment, do none of the above — leave the thread open and
+unresolved, and just record it as unaddressed with the user's reason.
+
+Record for each comment: location, reviewer, your assessment stance, decision,
+commit SHA (if any), and a one-line note on the resolution.
 
 ## Step 6: Repeat until every comment is reviewed
 
@@ -165,23 +210,30 @@ unless the user wants to wait.
 ## Step 7: Final summary table
 
 After the last comment, present a table covering every comment reviewed, so the
-user can see what changed and what remains:
+user can see your assessment, what changed, and what remains:
 
-| # | Location | Reviewer | Summary | Decision | Commit | Resolution |
-|---|----------|----------|---------|----------|--------|-----------|
-| 1 | `src/x.ts:42` | alice | Null check missing | Approved | `a1b2c3d` | Added guard; thread resolved |
-| 2 | `src/y.ts:10` | bob | Rename var | Skipped | — | Left unaddressed: reviewer preference, deferred |
-| 3 | general | carol | Update README | Alternative | `e4f5g6h` | Documented under Usage instead; thread resolved |
+| # | Location | Reviewer | Summary | Assessment | Decision | Commit | Resolution |
+|---|----------|----------|---------|------------|----------|--------|-----------|
+| 1 | `src/x.ts:42` | alice | Null check missing | Agree | Approved | `a1b2c3d` | Added guard; thread resolved |
+| 2 | `src/y.ts:10` | copilot | Rename var | Disagree | Rejected | — | Name follows project convention; replied and resolved |
+| 3 | `src/z.ts:88` | bob | Refactor loop | Partially agree | Skipped | — | Valid concern but out of scope; left open for follow-up |
+| 4 | general | carol | Update README | Agree | Alternative | `e4f5g6h` | Documented under Usage instead; thread resolved |
 
-Below the table, explicitly list the comments that remain **unaddressed**
-(Skipped or deferred) so nothing is lost. Note that skipped threads are still
-open on the PR and may need a manual reply or follow-up.
+Below the table, explicitly list the comments that remain **open** so nothing is
+lost:
+- **Skipped/deferred** threads are still open on the PR and may need a manual
+  reply or follow-up.
+- Call out any comment where your assessment and the user's decision diverged
+  (e.g. you recommended Reject but the user approved a fix, or vice versa), so
+  the reasoning is on record.
 
 ## Exit criteria
 
-- Every unresolved review thread has been presented to the user and given a
-  decision.
+- Every unresolved review thread has been presented with an independent validity
+  assessment and given a decision by the user.
 - Each approved/alternative fix has its own commit, an in-thread reply with a
   commit link, and a resolved thread.
-- The final summary table and the list of remaining unaddressed comments have
-  been shown.
+- Each rejected comment has an in-thread reply explaining why no change was made
+  and a resolved thread — no silent closes.
+- The final summary table (including the assessment column) and the list of
+  comments left open have been shown.
