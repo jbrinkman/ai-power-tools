@@ -24,9 +24,9 @@ next. Never move on until the user responds.
 1. Run `gh auth status` to confirm the GitHub CLI is installed and
    authenticated. If it fails, stop and ask the user to install
    (`brew install gh`) and authenticate (`gh auth login`).
-2. Confirm the current directory is a clone of the PR's repository and the PR's
-   head branch is checked out (see Step 2). Committing requires the working
-   tree, not just API access.
+2. Confirm the current directory is a clone of the PR's repository. Committing
+   requires the working tree, not just API access; Step 2 checks out the PR's
+   head branch.
 
 ## Step 1: Identify the PR
 
@@ -43,10 +43,11 @@ URL, or "the current branch's PR". Resolve `owner`, `repo`, and `pr_number`.
 The fixes are committed onto the PR's head branch, so it must be checked out
 locally with a clean working tree.
 
-1. Run `gh pr checkout <pr_number> --repo OWNER/REPO`.
-2. Run `git status` to confirm a clean tree. If there are uncommitted changes,
-   stop and ask the user how to handle them — do not stash or discard without
-   direction.
+1. Run `git status --porcelain` first. If the tree is not clean, stop and ask
+   the user how to handle the uncommitted changes — do not stash or discard
+   without direction, and do not check out over them.
+2. Run `gh pr checkout <pr_number> --repo OWNER/REPO`.
+3. Run `git status` again to confirm the PR branch is clean before making edits.
 
 ## Step 3: Gather PR context and comments
 
