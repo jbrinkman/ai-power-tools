@@ -51,8 +51,9 @@ locally with a clean working tree.
 
 ## Step 3: Gather PR context and comments
 
-1. `gh pr view <pr_number> --repo OWNER/REPO --json title,body,baseRefName,headRefName`
-   for PR metadata.
+1. `gh pr view <pr_number> --repo OWNER/REPO --json title,body,baseRefName,headRefName,headRepositoryOwner,isCrossRepository`
+   for PR metadata. `isCrossRepository` (and `headRepositoryOwner`) tell you
+   whether the PR comes from a fork, which Step 5 needs to push correctly.
 2. Fetch the **review comments** (inline, file-anchored) with their thread and
    resolution state via GraphQL, because the REST comments endpoint does not
    expose whether a thread is resolved:
@@ -154,8 +155,21 @@ Do these in order, per comment, so each fix maps to exactly one commit:
    Use `--no-gpg-sign` only if gpg is unavailable on this machine; otherwise
    respect the repo's signing config. Prefer staging the specific changed files
    over `git add .`.
-4. **Push** to the PR's head branch, naming the branch explicitly:
-   `git push origin <head-branch>`. A bare `git push` is blocked by policy.
+4. **Push** to the PR's head branch. Whether `origin` is the right remote
+   depends on where the PR comes from (see the `isCrossRepository` metadata from
+   Step 3):
+   - **Same-repo PR**: push naming the branch explicitly —
+     `git push origin <head-branch>`.
+   - **Fork PR** (`isCrossRepository` is `true`): `origin` points at the base
+     repo, not the fork, so pushing there is wrong. `gh pr checkout` configures
+     the local branch to track the correct head remote — push to that tracking
+     branch: find it with
+     `git rev-parse --abbrev-ref --symbolic-full-name @{u}` (e.g. `fork/branch`)
+     and run `git push <head-remote> <head-branch>`. This requires the fork to
+     have "Allow edits from maintainers" enabled; if the push is rejected for
+     permissions, stop and tell the user rather than forcing it.
+   In all cases name the branch (and remote) explicitly — a bare `git push` is
+   blocked by policy.
 5. **Capture the commit ref**: `git rev-parse HEAD` (short form for the reply).
 6. **Reply to the thread** with an explanation plus a link to the commit:
 
