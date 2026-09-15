@@ -94,8 +94,8 @@ Perform thorough, language-agnostic code reviews on GitHub pull requests.
 Human-in-the-loop: gathers PR + linked issue/Jira context, checks CI status,
 presents findings one at a time (correctness, security, performance, testing,
 design) with a severity and a single suggested comment, and submits them as one
-batched inline review via `gh api`. Requires `gh`; uses `atlassian-cli` only when
-a Jira issue is referenced.
+batched inline review via `gh api`. Requires `gh`; uses Atlassian's `acli` only
+when a Jira issue is referenced.
 
 **Triggers:** reviewing pull requests, examining code changes, providing feedback
 on code quality.
