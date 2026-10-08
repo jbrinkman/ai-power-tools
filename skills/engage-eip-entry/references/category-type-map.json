@@ -1,0 +1,135 @@
+{
+  "Account Management": [
+    "Azure Partner Admin Link",
+    "Consulting Contract <=$10K",
+    "Consulting Contract >$100K",
+    "Consulting Contract >$10K and <=$100K",
+    "Consulting/Training/Placement Lead - Prospect",
+    "Participation in Bluesheet Creation",
+    "Placement Contract",
+    "Qualified Consulting Lead",
+    "Qualified Contact",
+    "Training Contract"
+  ],
+  "Business Development": [
+    "Consulting - Prospect",
+    "Consulting Contract <=$10K",
+    "Consulting Contract >$100K",
+    "Consulting Contract >$10K and <=$100K",
+    "Placement Contract",
+    "Placement Prospect",
+    "Qualified Consulting lead",
+    "Qualified Contact",
+    "Qualified Placement Lead",
+    "Training Contract",
+    "Training Prospect"
+  ],
+  "Certification/Recognition": [
+    "Microsoft Certification",
+    "Microsoft MVP",
+    "Other Certification",
+    "Scrum.org (PST, Trainer)"
+  ],
+  "Come Together": [
+    "Challenge Participation",
+    "In-Person Attendance",
+    "Virtual Attendance"
+  ],
+  "Direct Revenue": [
+    "40 Billable Hour Week",
+    "OVER 40 Billable Hour Week",
+    "Required Support - 8pm-6am",
+    "Required Support - Weekend"
+  ],
+  "Education/Coaching": [
+    "Adjunct Instructor",
+    "Client Brown Bag",
+    "ImprovingU Attendance",
+    "ImprovingU Course Preparation",
+    "ImprovingU Group Discussion",
+    "ImprovingU Group Discussion Facilitation",
+    "ImprovingU Instructor Delivery",
+    "ImprovingU Key Course Attendance",
+    "ImprovingU Key Course Instructor Delivery",
+    "ImprovingU Key Course Student Work",
+    "ImprovingU Planning",
+    "ImprovingU Remote Facilitation",
+    "Personal Coaching",
+    "Project Review Presentation"
+  ],
+  "Improving Cares": [
+    "Community Service"
+  ],
+  "Improving Path": [
+    "Active Commitment",
+    "Meeting",
+    "Professional Development Coaching"
+  ],
+  "Industry Contribution/Leadership": [
+    "Board Participation",
+    "Lead User Group",
+    "Open Source or Internal Development",
+    "Presentation - Conference",
+    "Presentation - Improving Talks",
+    "Presentation - Lightning Talk",
+    "Presentation - Major",
+    "Presentation - User Group",
+    "Publication - Major",
+    "Publication - Minor"
+  ],
+  "Industry Participation": [
+    "Conference - Business Day",
+    "Conference - Vacation Day",
+    "Conference - Weekend",
+    "Podcast Contribution",
+    "Podcast Production",
+    "Relevant Blog Post",
+    "Relevant Social Media Posts",
+    "User/Professional Group Attendance"
+  ],
+  "Merger/Acquisition": [
+    "Letter of Intent/Terms Sheet",
+    "Letter of Interest",
+    "Qualified Lead"
+  ],
+  "Networking": [
+    "Improving Event Attendance",
+    "Improving Event Host",
+    "Improving Event Planning",
+    "Meeting",
+    "Partner Event"
+  ],
+  "Operations Support": [
+    "Corporate Initiative Meeting",
+    "Lead Corporate Initiative",
+    "Maintain Business Report",
+    "Maintain KPI Report",
+    "Website Development",
+    "Weekend Support"
+  ],
+  "Other": [
+    "Miscellaneous"
+  ],
+  "Recruiting": [
+    "Interview - In Person",
+    "Interview - Phone",
+    "Referral - Hire",
+    "Referral - NonHire"
+  ],
+  "Sales/Marketing Support": [
+    "Case Study Creation - Interviewee",
+    "Case Study Creation - Interviewer",
+    "Create News Item",
+    "Create Produced Collateral",
+    "Create Webpage Content",
+    "Email Campaign",
+    "Proposal - Large",
+    "Proposal - Small",
+    "Support Proposal (estimation)",
+    "Support Sales Meeting",
+    "User Group Host",
+    "User Group Referral - Large (20+ people)",
+    "User Group Referral - Other"
+  ],
+  "User Experience": []
+}
