@@ -1,0 +1,712 @@
+{
+  "headers": [
+    "Category",
+    "Name",
+    "Description",
+    "Point value",
+    "Guidance"
+  ],
+  "count": 100,
+  "rows": [
+    [
+      "Industry Participation",
+      "Podcast Production",
+      "Produced, recorded, and posted a podcast and included the URL in activity report. Improving was mentioned. Record each episode..",
+      "10",
+      ""
+    ],
+    [
+      "Education/Coaching",
+      "Personal Coaching",
+      "Participated as coach or recipient in a discussion regarding personal development, strengths, weaknesses, and plans to improve. Should be an organized session/meeting focused on personal development rather than just an impromptu discussion. List the name of the other participant(s).",
+      "3",
+      ""
+    ],
+    [
+      "Recruiting",
+      "Interview - Phone",
+      "Conducted a phone interview. Record each interview",
+      "4",
+      ""
+    ],
+    [
+      "Sales/Marketing Support",
+      "Case Study Creation - Interviewee",
+      "Participating in the interview and help edit an AI generated case study for Improving",
+      "15",
+      "Just the interview doesn't count, you must also do the follow up editing."
+    ],
+    [
+      "Sales/Marketing Support",
+      "Case Study Creation - Interviewer",
+      "Hosting and Facilitating the interview and editing process for Case Study generation for Improving.",
+      "25",
+      "Facilitation of the case study gathering, upload to the generator, and then add to the tracking system for editing."
+    ],
+    [
+      "Education/Coaching",
+      "ImprovingU Course Preparation",
+      "Hours for preparing ImprovingU courses",
+      "1",
+      "Please note the name of the course and record up to 5 hours of preparation (MAX)"
+    ],
+    [
+      "Direct Revenue",
+      "40 Billable Hour Week",
+      "Hours recorded for payroll indicate “fully billable” for the week. Applies to both Hourly and Salaried employees. Report every week that qualifies. If you are following a 9/80 or another alternative schedule that is the equivalent of 40-hour billables it will qualify.",
+      "5",
+      "Total number of billable hours recorded in the week is equal to or greater than 40 hours."
+    ],
+    [
+      "Direct Revenue",
+      "OVER 40 Billable Hour Week",
+      "Worked approved “overtime” during the quarter. Record each hour beyond “fully billable” (described above). Also record “Fully Billable Week” activity. Hours over 50 per week are not encouraged. Alternative schedules such as 9/80 are not considered \"overtime\" if over the alternative schedule period it evens out to 40 hours billable.",
+      "1",
+      "Record per each billable out \"overtime\" in the quarter"
+    ],
+    [
+      "Industry Contribution/Leadership",
+      "Presentation - Improving Talks",
+      "You presented on the official Improving Talks weekly presentations",
+      "20",
+      "Record the date in the field and talk title in the notes."
+    ],
+    [
+      "Education/Coaching",
+      "Adjunct Instructor",
+      "Assisted with presentation of a training class (internal or external) with the intent of becoming capable of presenting the class independently in the future. Notes should mention the class.",
+      "2",
+      ""
+    ],
+    [
+      "Merger/Acquisition",
+      "Letter of Intent/Terms Sheet",
+      "Provided a lead that has matured to the point that a Letter of Interest (Terms Sheet) has been submitted. Note: The items above are cumulative and should be reported in the order listed as they occur. Note: Only the first 5 referrals per calendar quarter will be considered.",
+      "45",
+      ""
+    ],
+    [
+      "Operations Support",
+      "Corporate Initiative Meeting",
+      "Met with others to further the objectives of an approved and organized corporate initiative. Notes include the name of the initiative.",
+      "2",
+      ""
+    ],
+    [
+      "Certification/Recognition",
+      "Microsoft Certification",
+      "",
+      "15",
+      ""
+    ],
+    [
+      "Recruiting",
+      "Referral - NonHire",
+      "Referred a candidate that has not yet been hired. Contact and skills information for the candidate was provided to the Improving Recruiting team.",
+      "10",
+      ""
+    ],
+    [
+      "Certification/Recognition",
+      "Other Certification",
+      "Received a certification not specifically listed.",
+      "15",
+      "Notes indicate the certification and/or includes a reference to website for certification details."
+    ],
+    [
+      "Account Management",
+      "Consulting Contract >$10K and <=$100K",
+      "Provided the primary lead that resulted in a new consulting contract or contract extension at an existing client. Sales team indicated that the size of the signed contract is Medium (more than $10K but less than or equal to $100K).",
+      "60",
+      "Ensure you are tagged in the opportunity in Dynamics CRM"
+    ],
+    [
+      "Networking",
+      "Partner Event",
+      "Attended an event sponsored by a client or partner (e.g., Microsoft, scrum.org).",
+      "1",
+      ""
+    ],
+    [
+      "Account Management",
+      "Training Contract",
+      "Provided the primary lead that resulted in a Training contract with an existing client. Training team indicates when the contract has been signed.",
+      "15",
+      "Limit: Maximum of 10 points per class."
+    ],
+    [
+      "Account Management",
+      "Consulting Contract >$100K",
+      "Provided the primary lead that resulted in a new consulting contract or contract extension at an existing client. Sales team indicated that size of signed contract is Large (greater than $100K).",
+      "90",
+      ""
+    ],
+    [
+      "Education/Coaching",
+      "Client Brown Bag",
+      "Presented a brown bag information or training session to an existing or potential client. Improving Sales was in attendance and contact information was collected from those that attended.",
+      "2",
+      ""
+    ],
+    [
+      "Business Development",
+      "Placement Prospect",
+      "Provided contact information AND potential for Placement business at a NEW client to the Recruiting/Placement team. Contact is known to have a need for services that Improving provides. (Note: Qualified Contact may also be recorded.)",
+      "6",
+      ""
+    ],
+    [
+      "Industry Contribution/Leadership",
+      "Publication - Major",
+      "Authored a book or authored an article that was published in an industry leading publication. Improving is mentioned in the author's biography.",
+      "40",
+      ""
+    ],
+    [
+      "Industry Participation",
+      "Relevant Blog Post",
+      "Authored an blog post that was published in your personal blog, Improving's blog, or other industry related blog. Improving is mentioned in the author's biography.",
+      "3",
+      ""
+    ],
+    [
+      "Sales/Marketing Support",
+      "Proposal - Small",
+      "Contributed to creation of a small/simple proposal for new business.",
+      "25",
+      ""
+    ],
+    [
+      "Certification/Recognition",
+      "Scrum.org (PST, Trainer)",
+      "Recognized by scrum.org as a Professional Scrum Trainer.",
+      "75",
+      ""
+    ],
+    [
+      "Industry Participation",
+      "Podcast Contribution",
+      "Participated in a podcast as facilitator or guest. Improving was mentioned. Record each episode that is posted.",
+      "5",
+      ""
+    ],
+    [
+      "Merger/Acquisition",
+      "Letter of Interest",
+      "Provided a lead that has matured to the point that a Letter of Interest has been generated.",
+      "30",
+      ""
+    ],
+    [
+      "Industry Contribution/Leadership",
+      "Open Source or Internal Development",
+      "Contributed to an open-source project AND Improving is mentioned in biography of contributor. Or contributed to an Improving internal project. Project (with link in the case of Open Source) should be named in the Notes field.",
+      "4",
+      ""
+    ],
+    [
+      "Sales/Marketing Support",
+      "Proposal - Large",
+      "Contributed to creation of large/complex proposal for new business.",
+      "50",
+      ""
+    ],
+    [
+      "Improving Path",
+      "Active Commitment",
+      "Actively worked on at least one (1) deliberate practices described in documented goals/commitments for professional growth within the month. Written goals/commitments must previously be shared with Path Coach. Took and reported measurable steps to Path Coach. Notes include the name of Path Coach. Can be reported once monthly. Can NOT be recorded multiple times for multiple goals within the month.",
+      "3",
+      ""
+    ],
+    [
+      "Business Development",
+      "Consulting Contract >$10K and <=$100K",
+      "Provided the primary lead that resulted in the first consulting contract with a NEW client. The Sales team indicated the size of the signed contract is Medium (more than $10K but less than or equal $100K).",
+      "60",
+      ""
+    ],
+    [
+      "Sales/Marketing Support",
+      "User Group Referral - Other",
+      "Referred a new user group to use Improving as a meeting space. The average size group is less than 20.",
+      "5",
+      ""
+    ],
+    [
+      "Sales/Marketing Support",
+      "User Group Host",
+      "Acted as the primary Improving representative for a user group meeting. Was responsible for room setup, guest greeting and sign-up, and arrangement of food/drink. Note: Lead User Group or User Group Attendance activities may be recorded for the same user session as User Group Host.",
+      "20",
+      "Record this at full value, if you have done all 4 of the below: Primary Improving representative for a user group meeting and present during meetup.​Room setup​ - Including food/drink if needed Guest greeting and sign-up​ sheet 2-3 Minutes about Improving at the beginning of the meeting Deliver the record of attendance / sign-up sheet to sales/marketing"
+    ],
+    [
+      "Education/Coaching",
+      "ImprovingU Key Course Instructor Delivery",
+      "Delivered an ImprovingU Key class. Notes include the name of the class. Record each full hour spent delivering a class session. Delivery and attendance should NOT be recorded for the same event.",
+      "6",
+      "KEY Courses are IBP, ELP, PEOP 310 (TED), FLC 610, IPC 301, all TRUST courses, all CCAP (Conscious Capitalism) courses, and the Delivery Excellence Improving Foundations (Improving Essentials, Consulting Standards, Trust Foundations, ACT 101, ACT 201). All other courses and Trust Pod meetings should NOT be reported as KEY courses."
+    ],
+    [
+      "Education/Coaching",
+      "ImprovingU Attendance",
+      "Attended an ImprovingU class. Notes include the name of the class. Record each full hour spent in a class session.",
+      "1",
+      "ImprovingU courses and Udemy courses count for this."
+    ],
+    [
+      "Education/Coaching",
+      "ImprovingU Instructor Delivery",
+      "Delivered an ImprovingU class. Notes include the name of the class. Record each full hour spent in a class session. Delivery and attendance should NOT be recorded for the same event.",
+      "5",
+      ""
+    ],
+    [
+      "Business Development",
+      "Placement Contract",
+      "Provided the primary lead that resulted in first contract for Placement services with a NEW client. Recruiting/Placement team has indicated that the contract has been signed.",
+      "75",
+      ""
+    ],
+    [
+      "Industry Participation",
+      "Conference - Vacation Day",
+      "Attended a conference on a workday AND took time off to do so. Record each day of attendance.",
+      "6",
+      ""
+    ],
+    [
+      "Business Development",
+      "Training Contract",
+      "Provided the primary lead that resulted in the first Training contract with a NEW client. The Training team has indicated that the contract has been signed.",
+      "30",
+      "Limit: Maximum of 10 points per class."
+    ],
+    [
+      "Sales/Marketing Support",
+      "Create News Item",
+      "",
+      "5",
+      ""
+    ],
+    [
+      "Education/Coaching",
+      "ImprovingU Key Course Attendance",
+      "Attended an ImprovingU Key class. Notes include the name of the class. Record each full hour spent in a class session.",
+      "2",
+      "KEY Courses are IBP, ELP, PEOP 310 (TED), FLC 610, IPC 301, all TRUST courses, all CCAP (Conscious Capitalism) courses, and the Delivery Excellence Improving Foundations (Improving Essentials, Consulting Standards, Trust Foundations, ACT 101, ACT 201). All other courses and Trust Pod meetings should NOT be reported as KEY courses."
+    ],
+    [
+      "Come Together",
+      "In-Person Attendance",
+      "Attended a Come Together meeting or event in person.",
+      "10",
+      ""
+    ],
+    [
+      "Sales/Marketing Support",
+      "User Group Referral - Large (20+ people)",
+      "Referred a new user group to use Improving as a meeting space. The average size group is 20 or more.",
+      "15",
+      ""
+    ],
+    [
+      "Account Management",
+      "Qualified Contact",
+      "Provided contact information to the Sales team for a new contact with an existing client. Contact may or may not have a need for services that Improving provides. Sent an email to salesleads@improving.com.",
+      "3",
+      ""
+    ],
+    [
+      "Industry Contribution/Leadership",
+      "Presentation - User Group",
+      "Presented to a user group. User group attendance should NOT be recorded for the same session.",
+      "20",
+      ""
+    ],
+    [
+      "Education/Coaching",
+      "ImprovingU Key Course Student Work",
+      "Spent time working on an ImprovingU Key class outside of class time. Notes indicate which class. Record each full hour spent on outside work.",
+      "1",
+      "KEY Courses are IBP, ELP, PEOP 310 (TED), FLC 610, IPC 301, all TRUST courses, all CCAP (Conscious Capitalism) courses, and the Delivery Excellence Improving Foundations (Improving Essentials, Consulting Standards, Trust Foundations, ACT 101, ACT 201). All other courses and Trust Pod meetings should NOT be reported as KEY courses."
+    ],
+    [
+      "Education/Coaching",
+      "ImprovingU Planning",
+      "Participated in definition of ImprovingU curriculum, program facilitation, or communication.",
+      "2",
+      ""
+    ],
+    [
+      "Industry Contribution/Leadership",
+      "Presentation - Lightning Talk",
+      "Presented a lightning talk (short presentation lasting only a few minutes) at a conference or similar forum.",
+      "10",
+      ""
+    ],
+    [
+      "Networking",
+      "Meeting",
+      "Attended a lunch or meeting with one or more active or potential recruits or clients. Attended a town hall, office retrospective, HR meeting, or other organized Improving meeting. Attended a meeting to discuss personal development (that cannot be recorded elsewhere). Do NOT record lunches with your normal work group. A single meeting with multiple attendees should be recorded as a single meeting.",
+      "1",
+      ""
+    ],
+    [
+      "Account Management",
+      "Participation in Bluesheet Creation",
+      "Participated with Improving Sales team in creation or update of Strategic Account Plan, Quarterly Business Review, or Blue Sheet.",
+      "15",
+      ""
+    ],
+    [
+      "Sales/Marketing Support",
+      "Email Campaign",
+      "Participated in an Improving email campaign. (Points vary per campaign.)",
+      "1",
+      ""
+    ],
+    [
+      "Industry Participation",
+      "Conference - Weekend",
+      "Attended a conference on the weekend. Record each day of attendance.",
+      "3",
+      ""
+    ],
+    [
+      "Networking",
+      "Improving Event Planning",
+      "Met with others to organize and plan Improving company events.",
+      "2",
+      ""
+    ],
+    [
+      "Account Management",
+      "Consulting/Training/Placement Lead - Prospect",
+      "Provided contact information AND potential for new business at an existing client to the Sales team. Contact is known to have a need for services that Improving provides. Sent an email to salesleads@improving.com. (Note: Qualified Contact may also be recorded.)",
+      "15",
+      ""
+    ],
+    [
+      "Account Management",
+      "Qualified Consulting Lead",
+      "Provided a new lead at an existing client and the Sales team has confirmed the potential for new consulting business with the client and entered into CRM as an Opportunity. (Note: Qualified Contact and Suspect may also be recorded.)",
+      "15",
+      ""
+    ],
+    [
+      "Direct Revenue",
+      "Required Support - 8pm-6am",
+      "Was required to provide support for client work outside of normal workday hours. The quantity should be 1 per hour worked. Can be reported in addition to Overtime for same activity. Applies to both Hourly and Salaried employees.",
+      "1",
+      ""
+    ],
+    [
+      "Account Management",
+      "Placement Contract",
+      "Provided the primary lead that resulted in a contract for Placement services with an existing client. Recruiting/Placement team indicated that the contract has been signed.",
+      "30",
+      ""
+    ],
+    [
+      "Networking",
+      "Improving Event Attendance",
+      "Attended an Improving sponsored meeting or event. Movie Night, Thirsty Thursday, family outings, are all examples.",
+      "1",
+      ""
+    ],
+    [
+      "Sales/Marketing Support",
+      "Create Webpage Content",
+      "Created content for a page on the Improving website that was accepted and used.",
+      "2",
+      ""
+    ],
+    [
+      "Business Development",
+      "Qualified Placement Lead",
+      "Provided a new lead at a NEW client and the Recruiting/Placement team has confirmed the potential for new business with the client. (Note: Qualified Contact and Placement Suspect may also be recorded.)",
+      "30",
+      ""
+    ],
+    [
+      "Operations Support",
+      "Maintain Business Report",
+      "Created or updated an Improving business report (outside of normal job responsibilities).",
+      "5",
+      ""
+    ],
+    [
+      "Improving Path",
+      "Meeting",
+      "Meeting between Coach and Employee regarding Improving Path program and employee commitments and actions. Introduction to path, accountability check-ins, and each drop-in conversation of 15 minutes minimum can be recorded.",
+      "1",
+      ""
+    ],
+    [
+      "Recruiting",
+      "Referral - Hire",
+      "Referred a candidate that was hired and has started work for Improving. This item is NOT eligible until the candidate has started work.",
+      "100",
+      ""
+    ],
+    [
+      "Business Development",
+      "Qualified Consulting lead",
+      "Provided a new lead at a NEW client and the Sales team has confirmed the potential for new consulting business with the client and entered into CRM as an Opportunity. (Note: Qualified Contact and Consulting Suspect may also be recorded.)",
+      "60",
+      ""
+    ],
+    [
+      "Improving Path",
+      "Professional Development Coaching",
+      "Meeting between Coach and Employee regarding specific goal/commitment guidance, mentoring/coaching in a specific skill area. Each meeting should be a minimum of 30 minutes and focus on the improvement of a specific skill.",
+      "3",
+      ""
+    ],
+    [
+      "Come Together",
+      "Challenge Participation",
+      "Participated in a monthly Come Together Challenge. Details to be provided for each Challenge.",
+      "10",
+      ""
+    ],
+    [
+      "Industry Contribution/Leadership",
+      "Board Participation",
+      "Participated as a member of a board that is relevant to Improving’s business. Limited to 1 meeting per quarter.",
+      "20",
+      ""
+    ],
+    [
+      "Business Development",
+      "Qualified Contact",
+      "Provided contact information to the Sales team for a new contact with a NEW client. Contact may or may not have a need for services that Improving provides. Sent an email to salesleads@improving.com.",
+      "6",
+      ""
+    ],
+    [
+      "Operations Support",
+      "Website Development",
+      "Contributed to development and/or content on the Improving website or a supporting system (e.g., engage, CodeLaunch, Improving.com, etc.) beyond client work.",
+      "1",
+      ""
+    ],
+    [
+      "Industry Contribution/Leadership",
+      "Lead User Group",
+      "Recognized as the leader of an active user group. Was responsible for scheduling, speaker coordination, agenda, promotion, etc. Record each meeting as a separate activity. Improving is mentioned on the user group website. NOTE: User Group Host may also be recorded if responsible for room setup, guest greeting, and arrangement of food/drink. User Group Attendance may also be recorded.",
+      "10",
+      ""
+    ],
+    [
+      "Business Development",
+      "Training Prospect",
+      "Provided contact information AND potential for Training business at a NEW client to the Training team. Contact is known to have a need for services that Improving provides. (Note: Qualified Contact may also be recorded.)",
+      "6",
+      ""
+    ],
+    [
+      "Operations Support",
+      "Lead Corporate Initiative",
+      "Actively led an approved and organized corporate initiative during the reporting period. Notes include the name of the initiative.",
+      "10",
+      ""
+    ],
+    [
+      "Education/Coaching",
+      "ImprovingU Group Discussion",
+      "Participated in group discussion regarding an ImprovingU class (minimum of 30 minutes). Includes Trust Pods, book club meetings, and other continued discussions related to an ImprovingU class.",
+      "1",
+      ""
+    ],
+    [
+      "Education/Coaching",
+      "ImprovingU Group Discussion Facilitation",
+      "Facilitated AND participated in group discussion regarding an ImprovingU class (minimum of 30 minutes). Includes Trust Pods, book club meetings, and other continued discussions related to an ImprovingU class. Discussion and facilitation should NOT be recorded for the same event. Notes indicate group/topic.",
+      "2",
+      ""
+    ],
+    [
+      "Direct Revenue",
+      "Required Support - Weekend",
+      "Was required to provide support for client work on the weekend. The quantity should be 1 per hour worked. Can be reported in addition to Overtime for same activity. Applies to both Hourly and Salaried employees.",
+      "1",
+      ""
+    ],
+    [
+      "Account Management",
+      "Consulting Contract <=$10K",
+      "Provided the primary lead that resulted in a new consulting contract or contract extension at an existing client. Sales team indicated that size of signed contract is Small ($10K or less).",
+      "10",
+      ""
+    ],
+    [
+      "Industry Participation",
+      "Relevant Social Media Posts",
+      "Posted career- or Improving-relevant entries/messages to a public social media site (Facebook, Twitter, Instagram, etc.) and included the profile URL in activity report. Profile and/or message must mention Improving. Record one entry for each set of 5 posts. Limit of 25 posts per quarter.",
+      "2",
+      ""
+    ],
+    [
+      "Industry Participation",
+      "Conference - Business Day",
+      "Attended a conference on a workday but did NOT take time off to do so. (A zero-point activity.)",
+      "0",
+      "Prior approval is required for conference attendance that would forfeit billable hours."
+    ],
+    [
+      "Education/Coaching",
+      "Project Review Presentation",
+      "Presented an overview of a client or internal project to a group of other Improvers (e.g., at Thirsty Thursday or similar corporate gathering.)",
+      "3",
+      ""
+    ],
+    [
+      "Come Together",
+      "Virtual Attendance",
+      "Attended a Come Together meeting or event virtually.",
+      "3",
+      ""
+    ],
+    [
+      "Sales/Marketing Support",
+      "Support Proposal (estimation)",
+      "Contributed insight and/or estimation support for a proposal for new business.",
+      "12",
+      ""
+    ],
+    [
+      "Merger/Acquisition",
+      "Qualified Lead",
+      "Provided a new lead for potential merger or acquisition. To be considered, the lead MUST include the following and must be emailed to MALeads@improving.com. • Name of Company • Website URL • Location of Headquarters • Contact Information • Why they would be a good match (e.g., met employees at a conference that impressed me) • Leaders in the company you can identify (preferably the president or CEO) • Main people in the company you know (if any) • Any additional Information that you know personally that may help us (if any)",
+      "15",
+      ""
+    ],
+    [
+      "Business Development",
+      "Consulting Contract <=$10K",
+      "Provided the primary lead that resulted in the first consulting contract with a NEW client. Sales team indicated size of signed contract is Small ($10K or less).",
+      "30",
+      ""
+    ],
+    [
+      "Industry Contribution/Leadership",
+      "Publication - Minor",
+      "Authored an article that was published in a technical journal or recognized online publication or blog. Improving is mentioned in the author's biography. Personal or Improving blog posts do not qualify (see Relevant Blog Post).",
+      "20",
+      ""
+    ],
+    [
+      "Operations Support",
+      "Maintain KPI Report",
+      "Created or updated a key process indicator report (outside of normal job responsibilities).",
+      "5",
+      ""
+    ],
+    [
+      "Business Development",
+      "Consulting - Prospect",
+      "Provided contact information AND potential for new Consulting business at a NEW client to the Sales team. Contact is known to have a need for services that Improving provides. Sent an email to salesleads@improving.com. (Note: Qualified Contact may also be recorded.)",
+      "12",
+      ""
+    ],
+    [
+      "Operations Support",
+      "Weekend Support",
+      "Supported Improving operations during the weekend.",
+      "1",
+      ""
+    ],
+    [
+      "Certification/Recognition",
+      "Microsoft MVP",
+      "Recognized as a Microsoft Most Valuable Professional (MVP) (applies yearly for each renewal)",
+      "50",
+      ""
+    ],
+    [
+      "Industry Contribution/Leadership",
+      "Presentation - Conference",
+      "Presented at a conference session. AgileDotNet is an example. Improving is mentioned in the speaker's biography.",
+      "60",
+      ""
+    ],
+    [
+      "Recruiting",
+      "Interview - In Person",
+      "Conducted a face-to-face interview. Record each interview",
+      "8",
+      ""
+    ],
+    [
+      "Improving Cares",
+      "Community Service",
+      "Participated in a community service event while wearing Improving swag (shirts, hats, etc.) and you must take photos and share with marketing. Notes describe the event. Record each full hour of service.",
+      "1",
+      "Make an Impact: Participate in a qualifying community service event. Build the Brand: Wear Improving swag, such as a hat or shirt, while volunteering. Share It: Post your photos on social media using #ImprovingCares. We'll be looking for and engaging with posts on LinkedIn, Facebook, and Instagram. Also please email to marketing@improving.com"
+    ],
+    [
+      "Networking",
+      "Improving Event Host",
+      "Acted as the host of an Improving sponsored meeting or event. Event attendance may also be recorded.",
+      "4",
+      ""
+    ],
+    [
+      "Education/Coaching",
+      "ImprovingU Remote Facilitation",
+      "Facilitated the participation of a group of students in a remote ImprovingU session. (The instructor that delivered the class was in a different city.) Notes include the name of the class.",
+      "3",
+      ""
+    ],
+    [
+      "Industry Participation",
+      "User/Professional Group Attendance",
+      "Attended a user group or professional organization meeting. Record each meeting.",
+      "1",
+      ""
+    ],
+    [
+      "Business Development",
+      "Consulting Contract >$100K",
+      "Provided the primary lead that resulted in the first consulting contract with a NEW client. Sales team indicated size of signed contract is Large (greater than $100K).",
+      "150",
+      ""
+    ],
+    [
+      "Sales/Marketing Support",
+      "Support Sales Meeting",
+      "Contributed to an internal Sales meeting or meeting with the Sales team and clients.",
+      "20",
+      ""
+    ],
+    [
+      "Industry Contribution/Leadership",
+      "Presentation - Major",
+      "Presented a keynote presentation at a conference with more than 300 attendees (e.g., AgileDotNet) or presented at a major industry conference (e.g., Agile Alliance’s Agile 2015). Improving is mentioned in the speaker's biography.",
+      "120",
+      ""
+    ],
+    [
+      "Sales/Marketing Support",
+      "Create Produced Collateral",
+      "",
+      "2",
+      ""
+    ],
+    [
+      "Account Management",
+      "Azure Partner Admin Link",
+      "Established and/or maintained Microsoft Azure Partner Admin Link (PAL) claim with a client during the quarter.",
+      "15",
+      "Report once for each client and each quarter where a client claim remains active. Client name must be included in the Notes of each activity report."
+    ],
+    [
+      "Other",
+      "Miscellaneous",
+      "Did something that provided value to Improving but was not covered by other Activities. Notes should include a thorough explanation of the activity. This is subject to review and points award.",
+      "1",
+      ""
+    ]
+  ]
+}

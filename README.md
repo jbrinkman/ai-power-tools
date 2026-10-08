@@ -128,6 +128,26 @@ narrative", "review valkey integration", "assess narrative completeness".
 
 *Supersedes the legacy Review Valkey Narrative Power.*
 
+### Improving Engage (EIP)
+
+#### engage-eip-entry
+
+Log EIP (Engagement, Involvement & Participation) activities into Improving's
+Engage portal (`engage.improving.com`, Involvement tab) from a calendar/activity
+spreadsheet. Two phases: **(1) classify** — read the spreadsheet's events and add a
+`Classification` sheet into the same workbook, mapping each row to a valid Engage
+Category + Type + Quantity (plus the reporting period derived from the date and any
+required extra field such as Organization URL / Attendance Type / Topic Area),
+flagging anything uncertain for review; **(2) enter** — drive the Add Activity form
+with Playwright, filing each confirmed row under the matching quarter, with
+per-row verification and dedup. Bundles a category→type map, the Engage catalog
+(point values), and the extra-fields matrix so classification needs no live
+re-scraping. Requires an authenticated Engage session for Phase 2.
+
+**Triggers:** "log my EIP points into Engage", "record my involvement activities",
+"enter my calendar into the involvement tab", "classify my EIP calendar into Engage
+categories/types", "bulk-add involvement activities to engage.improving.com".
+
 ### Weekly Status Reports (ElastiCache Agentic)
 
 A pipeline of skills for producing the team's weekly status report. Typical order:
@@ -187,6 +207,7 @@ ai-power-tools/
 ├── skills/
 │   ├── code-review/
 │   ├── confluence-cli/
+│   ├── engage-eip-entry/
 │   ├── github-issue-creator/
 │   ├── jira-cli/
 │   ├── jira-story-creator/

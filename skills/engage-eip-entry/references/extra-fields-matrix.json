@@ -1,0 +1,79 @@
+{
+  "addCardFound": true,
+  "combosWithExtra": 4,
+  "result": {
+    "Improving Cares ||| Community Service": [
+      {
+        "label": "Organization URL",
+        "name": "(none)",
+        "tag": "INPUT",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "Industry Contribution/Leadership ||| Presentation - Major": [
+      {
+        "label": "Topic Area",
+        "name": "(none)",
+        "tag": "SELECT",
+        "type": "select-one",
+        "required": true,
+        "options": [
+          "",
+          "Technology",
+          "Business",
+          "Process",
+          "Management",
+          "UX / Design",
+          "Other"
+        ]
+      },
+      {
+        "label": "Attendance",
+        "name": "(none)",
+        "tag": "INPUT",
+        "type": "number",
+        "required": true
+      }
+    ],
+    "Industry Contribution/Leadership ||| Presentation - User Group": [
+      {
+        "label": "Topic Area",
+        "name": "(none)",
+        "tag": "SELECT",
+        "type": "select-one",
+        "required": true,
+        "options": [
+          "",
+          "Technology",
+          "Business",
+          "Process",
+          "Management",
+          "UX / Design",
+          "Other"
+        ]
+      },
+      {
+        "label": "Attendance",
+        "name": "(none)",
+        "tag": "INPUT",
+        "type": "number",
+        "required": true
+      }
+    ],
+    "Networking ||| Improving Event Attendance": [
+      {
+        "label": "Attendance Type",
+        "name": "(none)",
+        "tag": "SELECT",
+        "type": "select-one",
+        "required": true,
+        "options": [
+          "",
+          "Virtual",
+          "In Person"
+        ]
+      }
+    ]
+  }
+}
