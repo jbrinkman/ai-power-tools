@@ -141,9 +141,10 @@ behavior.
 So when a reviewer (often an AI bot) flags that a spec no longer matches the
 shipped code and asks you to rewrite the spec to match, **Disagree and
 recommend Reject** by default. Rewriting the artifact would destroy its value
-as a historical record and invalidate the audit trail. Reply explaining that
-the spec is a historic artifact and the divergence is intended, then resolve
-the thread. Only edit files meant to track *current* behavior — live source,
+as a historical record and invalidate the audit trail. Explain in your
+recommendation that the spec is a historic artifact and the divergence is
+intended; if the user chooses Reject, reply to the thread and resolve it per
+Step 5's reject path. Only edit files meant to track *current* behavior — live source,
 tests, and user-facing docs (README, usage docs). If you are unsure whether a
 given file is a historic artifact or living documentation, ask the user before
 editing it.
