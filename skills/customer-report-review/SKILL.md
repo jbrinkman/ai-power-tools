@@ -212,12 +212,11 @@ For each finding in the deduplicated list:
    
    Suggested Fix: <fix>
    
-   [P]ost | [F]ix | [S]kip | [E]dit
+   [P]ost | [S]kip | [E]dit
    ```
 
 2. Wait for user decision:
    - **Post**: Mark for submission to GitHub
-   - **Fix**: Apply the suggested fix to the finding text, then re-present
    - **Skip**: Discard this finding
    - **Edit**: Accept user's edited text, re-present the updated finding
 
