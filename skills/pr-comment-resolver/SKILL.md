@@ -128,6 +128,27 @@ Your assessment is a recommendation. The user always makes the final call — a
 comment you disagree with is still fixed if the user approves a fix, and a
 comment you agree with is still skipped or rejected if the user says so.
 
+### Do not edit historic/audit artifacts
+
+Spec files, task lists, design/requirements documents, and similar records
+(e.g. `.kairon/specs/*`, a Kiro `requirements.md` / `design.md` / `tasks.md`)
+are **immutable audit artifacts**: they capture what the author/LLM was given
+to *generate* the code, not a living description of current behavior. A
+divergence between an older spec and the corrected final code is expected and
+intentional — the code and its tests are the authoritative record of current
+behavior.
+
+So when a reviewer (often an AI bot) flags that a spec no longer matches the
+shipped code and asks you to rewrite the spec to match, **Disagree and
+recommend Reject** by default. Rewriting the artifact would destroy its value
+as a historical record and invalidate the audit trail. Explain in your
+recommendation that the spec is a historic artifact and the divergence is
+intended; if the user chooses Reject, reply to the thread and resolve it per
+Step 5's reject path. Only edit files meant to track *current* behavior — live source,
+tests, and user-facing docs (README, usage docs). If you are unsure whether a
+given file is a historic artifact or living documentation, ask the user before
+editing it.
+
 Then ask for a decision and **wait** — do not proceed until the user responds:
 
 | Decision | Action |
