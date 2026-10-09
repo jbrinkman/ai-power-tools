@@ -124,8 +124,6 @@ Submit all accumulated comments as a single review using `gh api`:
 ```bash
 gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews \
   --method POST \
-  -f event="APPROVE" \
-  -f body="Overall review summary" \
   --input comments.json
 ```
 
@@ -310,9 +308,10 @@ Behavior differences from the interactive workflow:
    and submit with `event="COMMENT"`. If there are zero findings worth posting, still submit a
    `COMMENT` review with a body summarizing that the change looks good and what you checked.
 
-   Submit via the batch `gh api .../reviews` method from the Tools section with `-f event="COMMENT"`
-   and `--input comments.json`. If the `comments` list is empty, omit the `comments` key and submit
-   body-only.
+   Set `"event": "COMMENT"` inside `comments.json` (not via `-f`, which `gh` would send as a query
+   parameter and the API would ignore). Submit via the batch `gh api .../reviews` method from the
+   Tools section with `--input comments.json`. If the `comments` list is empty, omit the `comments`
+   key and submit body-only.
 
 4. **Self-authored PRs.** If the PR author is the same account `gh` is authenticated as, this is
    expected to be `COMMENT` anyway (per rule 3). Note in the body that formal approval requires a
