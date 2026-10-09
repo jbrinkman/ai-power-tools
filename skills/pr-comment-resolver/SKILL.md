@@ -146,15 +146,25 @@ Skip, or Alternative for the current one.
 Do these in order, per comment, so each fix maps to exactly one commit:
 
 1. **Edit** the file(s) to implement the approved change.
-2. **Verify** the change builds/lints if a quick check applies — prefer the
-   project's own build system / task runner (Makefile, Taskfile, npm scripts,
-   `go build`, etc.) over hand-rolled tool invocations, so results match CI.
-3. **Commit** just this change. Use a conventional-commit message referencing
+2. **Commit** just this change. Use a conventional-commit message referencing
    the comment, e.g.
    `git commit --no-gpg-sign -m "fix: <short description> (review comment)"`.
    Use `--no-gpg-sign` only if gpg is unavailable on this machine; otherwise
    respect the repo's signing config. Prefer staging the specific changed files
    over `git add .`.
+3. **Gate on CI checks before pushing.** Invoke the `verify-ci-checks` skill to
+   discover whatever CI build checks the project enforces (formatting, linting,
+   type-checking, building, and testing are common examples, but the real set is
+   project-specific and may include others) and run them locally against the
+   committed change. This is the push gate:
+   - **Gate PASS** — all checks pass; proceed to push.
+   - **Gate FAIL** — do **not** push. Fix the failing check(s), amend this
+     comment's commit (or add a fixup that you squash into it so the fix stays
+     part of the same logical change), and re-run the gate until it passes. If
+     the same check keeps failing after a few focused attempts, stop and surface
+     it to the user rather than thrashing.
+   - **NOT APPLICABLE** — the project exposes no discoverable checks; note that
+     and proceed to push.
 4. **Push** to the PR's head branch. Whether `origin` is the right remote
    depends on where the PR comes from (see the `isCrossRepository` metadata from
    Step 3):
@@ -219,8 +229,9 @@ commit SHA (if any), and a one-line note on the resolution.
 ## Step 6: Repeat until every comment is reviewed
 
 Continue through the queue one comment at a time. Do not stop early unless the
-user asks to. If new commits triggered CI, mention it but do not block on it
-unless the user wants to wait.
+user asks to. Each pushed fix has already passed the local CI-check gate
+(Step 5.3), so each push should be push-ready; the remote CI run that the push
+triggers is confirmed separately and is not blocked on here.
 
 ## Step 7: Final summary table
 
