@@ -167,12 +167,22 @@ For each specific comment:
 
 ### Posting a comment — Chorus
 
-Use `ChorusComment`. A narrative comment should anchor to the passage it is about, so pass a nested `anchor` whose `block_id` comes from the `<!-- id=... -->` delimiter in the Step 1 `read` output (the `anchor` is a character range within that one block). `body` is Markdown. `write` returns a `comment_num`:
+Use `ChorusComment`. A narrative comment should anchor to the passage it is about, so pass a nested `anchor` whose `block_id` comes from the `<!-- id=... -->` delimiter in the Step 1 `read` output. The `anchor` is a **required** object with three required fields: `block_id`, `start`, and `end` — `start`/`end` are character offsets (Unicode scalars, `0 <= start <= end <= block length`) into that one block. `body` is Markdown. `write` returns a `comment_num`:
 
 ```
 ChorusComment  { "action": "write", "doc_id": "<docId>",
-                 "anchor": { "block_id": "<block_id>", ... }, "body": "<COMMENT_TEXT>" }
+                 "anchor": { "block_id": "<block_id>", "start": 0, "end": 60 }, "body": "<COMMENT_TEXT>" }
 ```
+
+**Anchoring constraint — read before you plan where comments go.** Offset anchors are accepted **only on fully-plain paragraphs**. The server rejects (`"offset anchors are only supported on plain paragraphs"`) any block that is a heading, code block, list, table, OR a paragraph containing *any* formatted text — and a paragraph that merely *starts* with bold (e.g. a `**Track A, ...**` section lead) counts as formatted and is refused **even if you offset past the bold into its plain run**. In practice the lead paragraph of most sections (Problem, Solution/Track A/B, Value Proposition) is bold-led and therefore **not anchorable at all**; only unformatted prose paragraphs (e.g. the Purpose paragraphs, the How-Customers prose, the plain Value-Proposition sentences after the bold lead) accept an anchor.
+
+Because of this, **decide the anchor before writing the body, and make the body self-locating regardless of where it lands:**
+
+1. From the Step 1 `read`, note each block's `type` (the delimiter carries it). Treat `heading`, `codeBlock`, `bulletList`, `orderedList`, and any paragraph whose rendered text contains `**bold**`/other markup as **non-anchorable**.
+2. For a finding about a non-anchorable section, anchor to the nearest **plain paragraph** in or adjacent to that section, and **open the comment body with an explicit pointer** — e.g. `**Re: Solution → Track A**` on its own line — plus one line noting it is pinned nearby because that section's text is bold-led. Do this up front; do not post first and discover the rejection.
+3. Only when the target block is itself plain prose can you anchor a tight range over the exact sentence; then the body needs no pointer.
+
+**Anchors are immutable and there is no delete.** `ChorusComment`'s actions are `list | write | reply | edit | react` — no delete, and `edit` changes only the `body`, never the anchor. So a comment posted to the wrong block cannot be moved or removed; the only recovery is `edit` to prepend a `**Re: <section>**` pointer. Getting the anchor right the first time matters.
 
 - To respond in an existing thread rather than open a new one, use `reply` with the thread's `parent_num` (the `comment_num` that `list` reports): `{ "action": "reply", "doc_id": "<docId>", "parent_num": <n>, "body": "..." }`.
 - To review what is already on the doc, use `list`: `{ "action": "list", "doc_id": "<docId>" }`.
@@ -206,4 +216,4 @@ After processing all comments:
 - Adapt evaluation for non-standard narratives
 - Present **one comment at a time** — don't overwhelm the user
 - Respect user decisions — if they decline a comment, move on
-- On Chorus: anchor each comment to the relevant block via the `block_id` from the `read` delimiters, and prefer `reply` to continue an existing thread rather than opening duplicates
+- On Chorus: anchor each comment to the relevant block via the `block_id` from the `read` delimiters — but only plain-prose paragraphs accept an anchor (headings, code, lists, tables, and bold-led paragraphs are refused), so for a finding about a non-anchorable section, anchor to the nearest plain paragraph and open the body with a `**Re: <section>**` pointer (see Step 5). Prefer `reply` to continue an existing thread rather than opening duplicates.
