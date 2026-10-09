@@ -229,9 +229,9 @@ commit SHA (if any), and a one-line note on the resolution.
 ## Step 6: Repeat until every comment is reviewed
 
 Continue through the queue one comment at a time. Do not stop early unless the
-user asks to. Each pushed fix has already passed the local CI-check gate
-(Step 5.3), so each push should be push-ready; the remote CI run that the push
-triggers is confirmed separately and is not blocked on here.
+user asks to. Each pushed fix either passed the local CI-check gate (Step 5.3)
+or had no discoverable checks, so each push should be push-ready; the remote CI
+run that the push triggers is confirmed separately and is not blocked on here.
 
 ## Step 7: Final summary table
 
