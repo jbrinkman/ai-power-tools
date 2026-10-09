@@ -155,6 +155,22 @@ When performing a code review on a GitHub pull request, follow this human-in-the
 Do not batch comments or submit them all at once. Each finding is reviewed individually with the
 user before anything is posted to GitHub.
 
+### Mode selection (interactive vs. non-interactive)
+
+This skill has two modes. Steps 0–3 are identical in both; only how findings are confirmed and
+submitted (Steps 4–6) differs.
+
+- **Interactive (default)**: the human-in-the-loop workflow below. Use this whenever a human is
+  present to drive the review. Present each finding and wait for a decision.
+- **Non-interactive (autonomous)**: run the entire review start-to-finish with NO prompts, then
+  submit automatically. Use this when there is no human to answer prompts — a headless/subagent
+  run, a scheduled job, or when the invoker explicitly asks for non-interactive / autonomous /
+  unattended / `--non-interactive` mode. See the **Non-Interactive Mode** section below, which
+  REPLACES Steps 4–6. Steps 0–3 still run unchanged.
+
+If you are running as a background subagent or scheduled job (no interactive user in the loop),
+default to non-interactive mode even if not explicitly asked.
+
 ### Step 0: Validate tools
 
 Before starting the review, verify that the required CLI tools are installed and authenticated.
@@ -218,6 +234,9 @@ Present this summary and then proceed to findings.
 
 ### Step 4: Present findings one at a time
 
+> **Non-interactive mode:** skip Steps 4–6 entirely and follow the **Non-Interactive Mode**
+> section instead. The per-finding Post/Skip/Edit prompts below require a human.
+
 For each finding, present the following to the user:
 
 - **File and line**: Where the issue is
@@ -256,6 +275,54 @@ Once all findings have been reviewed, ask the user for the overall review action
 Only submit the review to GitHub after the user confirms the action. Use the `gh api` batch
 submission method described in the Tools section above. All accumulated comments are submitted
 as a single review with inline line references — never as individual top-level comments.
+
+## Non-Interactive Mode
+
+Use this mode when there is no human in the loop (headless/subagent run, scheduled job, or an
+explicit request for non-interactive/autonomous/unattended mode). It REPLACES Steps 4–6. Run
+Steps 0–3 exactly as in the interactive workflow first.
+
+Behavior differences from the interactive workflow:
+
+1. **No prompts, ever.** Do not ask the user anything. If a required input is missing or a tool
+   is unavailable, do not block waiting for an answer — record the limitation in the review body
+   and proceed with what you can assess. If `gh` auth fails (Step 0), you cannot review: emit a
+   clear failure summary and stop.
+
+2. **Decide each finding yourself.** For every finding you would have presented in Step 4, apply
+   your own judgment in place of the user's Post/Skip/Edit decision:
+   - **Post** the finding if it is a genuine blocking issue or a suggestion worth the author's
+     attention. Write the final comment text directly (the "Suggested comment" from Step 4).
+   - **Skip** findings that are pure style nits with no real risk, speculative, or likely false
+     positives. Favor precision over volume — an unattended review that posts noise erodes trust.
+   - Never post multiple options joined by "or"/"alternatively"; commit to one recommendation,
+     exactly as in interactive mode.
+   Accumulate posted findings internally as the `comments` list (path/line/body objects), using
+   the same diff-hunk line-mapping rules from the Tools section. Validate every `line` against the
+   RIGHT-side (added/context) lines of the diff; re-anchor or drop any finding whose line is not
+   inside a diff hunk — GitHub rejects out-of-diff anchors.
+
+3. **Submit automatically as a single review — event is always `COMMENT`.** Do NOT auto-`APPROVE`
+   or auto-`REQUEST_CHANGES`: approval/rejection is a human decision, and GitHub rejects an
+   `APPROVE`/`REQUEST_CHANGES` on the reviewer's own PR (which drops the inline comments too).
+   Put your overall assessment — including any approving sentiment ("LGTM, no blocking issues")
+   or a clear "N blocking issues found, changes recommended before merge" — in the review `body`,
+   and submit with `event="COMMENT"`. If there are zero findings worth posting, still submit a
+   `COMMENT` review with a body summarizing that the change looks good and what you checked.
+
+   Submit via the batch `gh api .../reviews` method from the Tools section with `-f event="COMMENT"`
+   and `--input comments.json`. If the `comments` list is empty, omit the `comments` key and submit
+   body-only.
+
+4. **Self-authored PRs.** If the PR author is the same account `gh` is authenticated as, this is
+   expected to be `COMMENT` anyway (per rule 3). Note in the body that formal approval requires a
+   different reviewer.
+
+5. **Emit a final summary** as your last message: the PR number, the review URL if available, the
+   event submitted (always COMMENT), a count of findings posted vs. skipped, and the one-line
+   verdict. This is what the caller (e.g. a monitoring job) relays.
+
+Do not build, fix, edit, or push any code in this mode — it remains a review-only workflow.
 
 ## References
 
