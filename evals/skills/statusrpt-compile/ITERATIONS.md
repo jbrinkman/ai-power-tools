@@ -77,4 +77,11 @@ Runner: `task eval:statusrpt-compile CONFIG=promptfooconfig.kiro.yaml`.
 
 GREEN at 100% (7/7) on Kiro / claude-sonnet-5.5. Meets Stage 3 §2 (>=3 distinct
 criteria, 95%+ achievable, mid-tier model) and §3 (documented iterations with
-cause-and-effect). Further refactor iterations, if any, will be appended here.
+cause-and-effect). Certified on the Kiro provider.
+
+Cross-provider (Devin) run: PENDING — to be executed on an Improving laptop with
+Devin access via `task eval:statusrpt-compile CONFIG=promptfooconfig.devin.yaml`.
+The skill logic and the 7 criteria are provider-agnostic; the only
+provider-specific wiring is the headless tool-trust flag (kiro: `--trust-all-tools`,
+devin: `--permission-mode dangerous`), already present in each provider. A Devin
+run confirms the harness port, not the skill logic. Append its result here when run.
