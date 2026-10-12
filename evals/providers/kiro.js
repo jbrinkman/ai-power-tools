@@ -115,9 +115,11 @@ if (isGraderMode) {
 } else {
   // ===== PROVIDER MODE =====
   // Call kiro-cli in non-interactive single-turn mode with the specified model.
-  // The mock gh script prepended to PATH prevents the skill from touching the
-  // real GitHub CLI.
-  const args = ['chat', '--no-interactive', prompt];
+  // --trust-all-tools is kiro-cli's equivalent of devin's dangerous permission
+  // mode: without it a --no-interactive session cannot approve tool calls and the
+  // skill's read/glob/exec calls fail. The mock gh script prepended to PATH keeps
+  // those tools off the real GitHub CLI.
+  const args = ['chat', '--no-interactive', '--trust-all-tools', prompt];
   if (model) {
     args.push('--model', model);
   }
