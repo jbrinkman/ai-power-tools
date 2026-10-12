@@ -220,3 +220,13 @@
         label: "C11 the run recorded a pre-run snapshot_path"
         query: "SELECT CASE WHEN snapshot_path IS NOT NULL AND length(snapshot_path) > 0 THEN 'yes' ELSE 'no' END FROM reconciliation_runs ORDER BY id DESC LIMIT 1;"
         expected: "yes"
+
+    # Criterion 12 — ORDERING: a brand-new tracker project already merged+released
+    # must reach 'completed' in THIS run, not just 'submitted' — only possible if
+    # Confluence intake (new projects/PRs) runs BEFORE the PR-state scan.
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C12 Sample Already-Shipped Feature reaches completed in this same run"
+        query: "SELECT bucket FROM projects WHERE name = 'Sample Already-Shipped Feature';"
+        expected: "completed"

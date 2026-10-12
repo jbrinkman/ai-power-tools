@@ -97,11 +97,38 @@ Runner: `task eval:statusrpt-pr-tables CONFIG=promptfooconfig.kiro.yaml`.
   rollback is. The join-table gap would have been invisible until the first real
   rollback in production.
 
+## Iteration 4 — Ordering fix: Confluence intake must run before the PR-state scan
+
+- **Trigger:** user review of the step order — Confluence intake (new
+  projects/PRs) was Step 5, AFTER the PR-state classification/move/promotion
+  steps (1-3). A project discovered this run from the tracker would not have
+  its PR state checked until the FOLLOWING run — a full extra week of lag for
+  anything new.
+- **Hypothesis:** reordering intake to run immediately after the snapshot,
+  before any PR-state step, lets a brand-new project's PR be scanned,
+  classified, and (if warranted) promoted in the SAME run it was discovered.
+- **Change:** restructured Steps: snapshot (1) -> Confluence intake, now
+  including new Infrastructure rows (2) -> close-reason classification (3) ->
+  bucket moves (4) -> completion-evidence promotion (5) -> Infrastructure
+  status reconciliation (6) -> audit trail (7). Added a NEW eval fixture
+  (`Sample Already-Shipped Feature`, tracker PR #80) that is brand-new via
+  Confluence AND already merged+released in `gh-api-responses.json` — a case
+  that can only reach `completed` in the same run if intake ran first.
+- **Result:** **12/12 (100%)**, including the new ordering-specific criterion
+  C12 — independently verified against the DB: the brand-new project reached
+  `completed` with `completion_evidence_kind = 'release-tag'` in the one run.
+  The existing 11 criteria held with no regression.
+- **Reasoning:** this was a real correctness bug in an already-certified unit,
+  caught by review rather than by the eval suite (the suite's prior fixtures
+  happened not to exercise a same-run intake+promote case). Fixed, and a
+  fixture now exists specifically so a regression back to the old ordering
+  would be caught automatically.
+
 ## Status
 
-GREEN at 100% (11 criteria, 24 assertions) on Kiro / claude-sonnet-5.5, with
-rollback verified end-to-end. Meets Stage 3 §2 (>=3 distinct criteria — this
-unit has 11 — 95%+ achievable, mid-tier model) and §3 (documented
-Red/Green/Refactor + a tested capability addition). Devin cross-provider run
-PENDING on an Improving laptop via
-`task eval:statusrpt-pr-tables CONFIG=promptfooconfig.devin.yaml`.
+GREEN at 100% (12 criteria, 26 assertions) on Kiro / claude-sonnet-5.5, with
+rollback verified end-to-end and the intake-ordering fix independently
+confirmed against the DB. Meets Stage 3 §2 (>=3 distinct criteria — this unit
+has 12) and §3 (documented Red/Green/Refactor + two post-hoc capability/
+correctness iterations). Devin cross-provider run PENDING on an Improving
+laptop via `task eval:statusrpt-pr-tables CONFIG=promptfooconfig.devin.yaml`.

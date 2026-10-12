@@ -32,5 +32,15 @@
         <td><a href="https://github.com/sample-org/tf-provider/issues/129">#129</a></td>
         <td><a href="https://github.com/sample-org/tf-provider/pull/130">PR 130</a></td>
         <td>Awaiting Merge</td></tr>
+
+    <!-- ORDERING CHECK: brand-new tracker project whose PR is ALREADY merged+released per
+         gh-api-responses.json (sample-org/already-shipped#80). This only promotes to
+         'completed' in THIS run if intake (Step 2) happens BEFORE the PR-state scan
+         (Steps 3-5) -- the bug this fixture exists to catch is intake running last, which
+         would leave this new project sitting 'submitted' for a full extra week. -->
+    <tr><td>Sample Already-Shipped Feature</td><td>Dana</td>
+        <td><a href="https://github.com/sample-org/already-shipped/issues/79">#79</a></td>
+        <td><a href="https://github.com/sample-org/already-shipped/pull/80">PR 80</a></td>
+        <td>Merged</td></tr>
   </tbody>
 </table>
