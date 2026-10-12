@@ -157,7 +157,7 @@
         (c) The "Not Started" Taskei item SAMP-4 is EXCLUDED from both progress and summary;
         (d) The "### Completed Projects" table and its "**Note:**" line are preserved verbatim.
     - type: not-contains
-      value: "In Review"
+      value: "Demo CLI moved to In Review"   # the specific prior-week bullet must be gone (a legitimate current "In Review" status is fine)
 
 # ─── Criterion 7: Non-destructive integrity — unrelated content preserved ───
 - description: "C7 integrity — rows/sections not implicated by the sources are preserved unchanged"

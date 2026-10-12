@@ -43,6 +43,36 @@ Runner: `task eval:statusrpt-compile CONFIG=promptfooconfig.kiro.yaml`.
   RTCC/one-block-per-criterion design was sound. The lone Iteration-1 pass was a
   false positive (fabricated output), now superseded by a real grounded pass.
 
+## Iteration 2 — REFACTOR (trim for load-bearing; fix a brittle assertion)
+
+- **Baseline:** 7/7 green, but `SKILL.md` carried two non-load-bearing sections.
+- **Hypothesis:** The `## Task` section (a prose restatement of the 7 Steps) and
+  the `## Context — Report structure` inventory (section list never checked by any
+  criterion; the only load-bearing structural facts — the `Hello everyone,` /
+  `### Completed Projects` boundary and the `**Note:**` line — already live inside
+  Steps 1 and 6) are dead weight. Removing them raises the load-bearing ratio
+  (Stage 3 §1, >=90%) without weakening any criterion, so the suite stays 7/7.
+- **Change:** Deleted both sections (~18 lines). No Step, constraint, or
+  grader-checked example touched.
+- **Result (first re-run):** 6/7 — criterion `summary-generation` failed on the
+  `not-contains: "In Review"` assertion.
+- **Diagnosis:** NOT a skill regression. Inspecting the model output: the
+  prior-week bullet "Demo CLI moved to In Review" was correctly GONE; the only
+  "In Review" was a *legitimate current* reference — the model annotated the
+  Sample Framework Adapter bullet with its Taskei workflow state `(SAMP-1, In
+  Review)`, which is accurate data from `taskei-sprint.json`. The assertion was a
+  brittle substring proxy that passed pre-refactor only because the earlier
+  wording happened not to surface the token. Per EDD discipline (don't game an
+  assertion to force green — fix it to express real intent), the real intent is
+  "the specific prior-week bullet must not survive."
+- **Fix:** Changed the assertion to `not-contains: "Demo CLI moved to In Review"`,
+  which targets the actual carried-over bullet and matches what the C6 LLM-rubric
+  already checks.
+- **Result (final):** **7/7 passed (100%)**. Refactor complete, no regression.
+- **Reasoning:** The refactor validated the harness as well as the skill — it
+  surfaced a false-negative-prone assertion that a pure Green run had masked.
+  Leaner skill, more precise eval, same 100%.
+
 ## Status
 
 GREEN at 100% (7/7) on Kiro / claude-sonnet-5.5. Meets Stage 3 §2 (>=3 distinct

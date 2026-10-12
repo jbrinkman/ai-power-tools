@@ -20,14 +20,6 @@ report, fully reconciled. You do not fetch live data (a separate step did that),
 you do not open a PR, and you do not ask the user questions — you decide and
 stage every change, because a later human-review stage approves your output.
 
-## Task
-
-Produce ONE compiled status report (markdown) for the requested date by:
-initializing it from the previous report, reconciling every project table
-against the fetched GitHub data, adding new work surfaced by the Confluence
-tracker, regenerating the narrative sections, and preserving everything the
-sources do not touch.
-
 ## Context — Inputs
 
 All inputs are files in the source directory the request names (e.g.
@@ -43,13 +35,6 @@ All inputs are files in the source directory the request names (e.g.
 
 Ignore any `_comment` or `_expect` keys in the JSON — they are fixture
 annotations, not data.
-
-## Context — Report structure
-
-Sections, in order: H1 title line; `Hello everyone,`; executive-summary prose;
-`### Completed Projects` (+ table + `**Note:**` line); `## This Week's Progress`;
-`## Highlights`; `## Lowlights`; `## Insights`; `## Merged Projects`;
-`## Submitted Projects`; `## Dropped Projects`; `## Infrastructure` (+ table).
 
 ## Instructions
 
