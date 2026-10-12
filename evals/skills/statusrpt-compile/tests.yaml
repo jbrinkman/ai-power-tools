@@ -6,9 +6,9 @@
 # report (markdown) as its output. Live fetching is a separate deterministic script,
 # NOT part of this graded unit.
 #
-# The master promptfooconfig.yaml defaults skillFile to the github-issue-creator skill,
-# so EVERY test here overrides skillFile (and sets fixturesDir) in its own vars.
-# {{fixturesDir}} resolves relative to the evals/ working directory where promptfoo runs.
+# The provider configs (promptfooconfig.devin.yaml / .kiro.yaml) default skillFile to the
+# github-issue-creator skill, so EVERY test here overrides skillFile (and sets fixturesDir)
+# in its own vars. {{fixturesDir}} resolves relative to the evals/ working directory.
 #
 # Each test grades the produced report against ONE distinct criterion. Criteria are
 # deliberately independent (not variations of one check) to satisfy Stage 3 §2 (>=3

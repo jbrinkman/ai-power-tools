@@ -1,7 +1,11 @@
 version: "3"
 
+# CONFIG selects the provider-specific Promptfoo config. Override per run, e.g.:
+#   task eval:all CONFIG=promptfooconfig.kiro.yaml
+# or use the :kiro / :devin convenience aliases below.
 vars:
   GH_MOCK_LOG_FILE: tmp/promptfoo-gh-mock.log
+  CONFIG: '{{.CONFIG | default "promptfooconfig.devin.yaml"}}'
 
 tasks:
   default:
@@ -10,31 +14,42 @@ tasks:
       - task --list
 
   eval:github-issue-creator:
-    desc: Evaluate the github-issue-creator skill
+    desc: Evaluate the github-issue-creator skill (CONFIG=... to pick provider)
     cmds:
       - "mkdir -p tmp"
       - "rm -f {{.GH_MOCK_LOG_FILE}}"
-      - "npx promptfoo eval --no-cache --config promptfooconfig.yaml --filter-metadata skill=github-issue-creator --delay 0"
+      - "npx promptfoo eval --no-cache --config {{.CONFIG}} --filter-metadata skill=github-issue-creator --delay 0"
     env:
       GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
 
   eval:statusrpt-compile:
-    desc: Evaluate the statusrpt-compile skill
+    desc: Evaluate the statusrpt-compile skill (CONFIG=... to pick provider)
     cmds:
       - "mkdir -p tmp"
       - "rm -f {{.GH_MOCK_LOG_FILE}}"
-      - "npx promptfoo eval --no-cache --config promptfooconfig.yaml --filter-metadata skill=statusrpt-compile --delay 0"
+      - "npx promptfoo eval --no-cache --config {{.CONFIG}} --filter-metadata skill=statusrpt-compile --delay 0"
     env:
       GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
 
   eval:all:
-    desc: Evaluate all skills
+    desc: Evaluate all skills (CONFIG=... to pick provider)
     cmds:
       - "mkdir -p tmp"
       - "rm -f {{.GH_MOCK_LOG_FILE}}"
-      - "npx promptfoo eval --no-cache --config promptfooconfig.yaml --delay 0"
+      - "npx promptfoo eval --no-cache --config {{.CONFIG}} --delay 0"
     env:
       GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
+
+  # Convenience aliases: run the full suite through a specific provider.
+  eval:all:devin:
+    desc: Evaluate all skills through the Devin provider
+    cmds:
+      - "task eval:all CONFIG=promptfooconfig.devin.yaml"
+
+  eval:all:kiro:
+    desc: Evaluate all skills through the Kiro provider
+    cmds:
+      - "task eval:all CONFIG=promptfooconfig.kiro.yaml"
 
   view:
     desc: Open the Promptfoo dashboard with all evaluation history

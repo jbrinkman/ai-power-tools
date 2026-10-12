@@ -1,11 +1,12 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
-# Master Promptfoo config for evaluating ai-power-tools skills.
-# This config loads a skill file dynamically and runs per-skill test suites.
+# Kiro-provider Promptfoo config for evaluating ai-power-tools skills.
+# Identical to the Devin config except for the provider/grader it runs through.
+# Shared pieces (prompt shape, per-skill tests, defaults) are kept in sync with
+# promptfooconfig.devin.yaml; only the provider block differs.
 
-description: ai-power-tools skills evaluation framework
+description: ai-power-tools skills evaluation framework (Kiro)
 
 # The prompt loads the skill file and appends the user request.
-# The skillFile variable is set per skill in the imported test file.
 prompts:
   - "@{{skillFile}}\n\n## User Request\n\n{{request}}"
 
@@ -15,19 +16,18 @@ defaultTest:
     skillFile: ../../skills/github-issue-creator/SKILL.md
     expectedRepo: test-org/test-repo
   options:
-    provider: "exec: node ./providers/devin.js"
-    config:
-      model: "swe-1.6"
-
-# Target provider that executes the skill.
-providers:
-  - id: "exec: node ./providers/devin.js"
-    label: "Devin claude-sonnet-4.6"
+    provider: "exec: node ./providers/kiro.js"
     config:
       model: "claude-sonnet-4.6"
 
-# Per-skill test files are imported here. Add new skills by adding their
-# tests.yaml file below.
+# Target provider that executes the skill.
+providers:
+  - id: "exec: node ./providers/kiro.js"
+    label: "Kiro claude-sonnet-4.6"
+    config:
+      model: "claude-sonnet-4.6"
+
+# Per-skill test files. Keep this list identical to promptfooconfig.devin.yaml.
 tests:
   - file://skills/github-issue-creator/tests.yaml
   - file://skills/statusrpt-compile/tests.yaml
