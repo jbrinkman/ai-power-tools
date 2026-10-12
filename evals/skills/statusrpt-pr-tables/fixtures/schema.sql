@@ -170,12 +170,16 @@ CREATE TABLE infrastructure_items (
 
 -- Audit trail: every reconciliation run and what it changed. Answers "why did
 -- this project move buckets" later, and feeds the Stage-4 audit-trail
--- requirement for this unit.
+-- requirement for this unit. `snapshot_path` records the pre-run copy of the
+-- whole DB file taken before the run mutates anything -- the blunt, foolproof
+-- rollback floor (restore the file). Per-event old_value/new_value add the
+-- precision layer: surgically reverse one change without reverting the run.
 CREATE TABLE reconciliation_runs (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     run_date        TEXT NOT NULL,   -- the report date this run was for, YYYY-MM-DD
     started_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     finished_at     TEXT,
+    snapshot_path   TEXT,            -- path to the pre-run DB file copy (rollback floor)
     source_summary  TEXT             -- freeform note on what sources were consulted (gh/confluence)
 );
 
@@ -183,9 +187,22 @@ CREATE TABLE reconciliation_events (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     run_id          INTEGER NOT NULL REFERENCES reconciliation_runs(id) ON DELETE CASCADE,
     entity_type     TEXT NOT NULL CHECK (entity_type IN
-                      ('project', 'pull_request', 'issue', 'narrative', 'infrastructure_item')),
+                      ('project', 'pull_request', 'issue', 'narrative',
+                       'infrastructure_item', 'project_pull_request')),
+    -- entity_id is the row's integer id for tables that have one. The
+    -- project_pull_requests JOIN table has no single id, so for a
+    -- 'project_pull_request' event entity_id is 0 and the link's full identity
+    -- (project_id, pull_request_id, role) lives in old_value/new_value instead.
     entity_id       INTEGER NOT NULL,
     action          TEXT NOT NULL,   -- e.g. "moved_to_merged", "added", "relabeled", "removed", "link_updated"
+    -- old_value/new_value make an event mechanically reversible: a JSON object of
+    -- the changed columns' prior and resulting values. For an INSERT, old_value is
+    -- NULL; for a DELETE, new_value is NULL and old_value holds the ENTIRE deleted
+    -- row (so a soft-deleted row can be reinserted). For an UPDATE, both carry only
+    -- the columns that changed. This is structured data for a rollback to parse,
+    -- distinct from `detail`, which is the human-readable why.
+    old_value       TEXT,            -- JSON of prior column values (NULL on insert)
+    new_value       TEXT,            -- JSON of resulting column values (NULL on delete)
     detail          TEXT,            -- freeform description of what changed and why
     created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );

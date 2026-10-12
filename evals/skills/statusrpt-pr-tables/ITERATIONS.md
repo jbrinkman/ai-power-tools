@@ -62,10 +62,46 @@ Runner: `task eval:statusrpt-pr-tables CONFIG=promptfooconfig.kiro.yaml`.
   level, where it applies to every step; Step 3 only needed its own
   requirement, not a restatement of why.
 
+## Iteration 3 — Rollback capability (schema + skill + a bug the test caught)
+
+- **Trigger:** a design question — "does the schema have enough to roll back a
+  run?" The honest answer with the Green schema was no: `reconciliation_events`
+  recorded a prose `detail` but no structured before/after values, and deletes
+  were unrecoverable.
+- **Change:** added `reconciliation_runs.snapshot_path` (pre-run whole-DB file
+  copy — the blunt rollback floor) and `old_value`/`new_value` JSON to
+  `reconciliation_events` (surgical per-change reversal); added a `rollback.py`
+  helper (snapshot-restore and transactional per-run event reversal); extended
+  the skill's Step 6 to snapshot-first and log old/new per change; added two
+  eval criteria (events carry old/new; a snapshot_path is recorded).
+- **Result (first attempt):** eval 100%, BUT an end-to-end rollback *test*
+  (reconcile, then actually run the reversal) FAILED: `no such column:
+  project_pull_requests`. Two real bugs surfaced, exactly because the
+  capability was tested rather than assumed:
+  1. a link repoint is a change to the `project_pull_requests` JOIN table, which
+     has no single `id` — the event model and rollback helper only handled
+     own-column UPDATE/INSERT/DELETE, so join-table changes had no reversible
+     representation;
+  2. the rollback applied events without a transaction, so the mid-run failure
+     left the DB half-reverted.
+- **Fix:** added `project_pull_request` to the event `entity_type` set (entity_id
+  0, link identity in the JSON); taught `rollback.py` to reverse join rows by
+  composite key; wrapped the whole reversal in one transaction (abort leaves the
+  DB untouched); taught the skill to log link changes as `project_pull_request`
+  events.
+- **Result (after fix):** eval 100%, and the end-to-end proof passes — a full
+  reconciliation (24 events) reverses in one transaction and the DB returns
+  EXACTLY to seed state (bucket, infra row, and link all restored). Rollback is
+  now a verified capability, not an implied one.
+- **Reasoning:** "the schema looks sufficient" is not evidence; running the
+  rollback is. The join-table gap would have been invisible until the first real
+  rollback in production.
+
 ## Status
 
-GREEN at 100% (10/10 criteria, 20 assertions) on Kiro / claude-sonnet-5.5.
-Meets Stage 3 §2 (>=3 distinct criteria — this unit has 10 — 95%+ achievable,
-mid-tier model) and §3 (documented Red/Green/Refactor). Devin cross-provider
-run PENDING on an Improving laptop via
+GREEN at 100% (11 criteria, 24 assertions) on Kiro / claude-sonnet-5.5, with
+rollback verified end-to-end. Meets Stage 3 §2 (>=3 distinct criteria — this
+unit has 11 — 95%+ achievable, mid-tier model) and §3 (documented
+Red/Green/Refactor + a tested capability addition). Devin cross-provider run
+PENDING on an Improving laptop via
 `task eval:statusrpt-pr-tables CONFIG=promptfooconfig.devin.yaml`.

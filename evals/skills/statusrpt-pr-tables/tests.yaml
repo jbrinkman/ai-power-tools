@@ -206,3 +206,17 @@
         label: "C10 at least 5 reconciliation_events rows exist"
         query: "SELECT CASE WHEN COUNT(*) >= 5 THEN 'yes' ELSE 'no' END FROM reconciliation_events;"
         expected: "yes"
+
+    # Criterion 11 — events are mechanically reversible (rollback capability)
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C11 every event carries old_value or new_value (reversible)"
+        query: "SELECT CASE WHEN COUNT(*) = 0 THEN 'yes' ELSE 'no' END FROM reconciliation_events WHERE old_value IS NULL AND new_value IS NULL;"
+        expected: "yes"
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C11 the run recorded a pre-run snapshot_path"
+        query: "SELECT CASE WHEN snapshot_path IS NOT NULL AND length(snapshot_path) > 0 THEN 'yes' ELSE 'no' END FROM reconciliation_runs ORDER BY id DESC LIMIT 1;"
+        expected: "yes"

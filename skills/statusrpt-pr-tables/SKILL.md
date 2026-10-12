@@ -143,17 +143,34 @@ decide the real project boundary before writing anything:
 - A brand-new project's initial bucket is `submitted` unless the tracker
   already shows it merged/closed.
 
-### Step 6 — Write the audit trail
+### Step 6 — Snapshot first, then write the audit trail
 
-Before making any change, insert one row into `reconciliation_runs` for this
-run (`run_date` = today, `source_summary` noting which files you consulted).
-For every change you make to `projects`, `pull_requests`,
-`project_pull_requests`, or `infrastructure_items` — a bucket move, a
-relabel, a link repoint, an insert, a delete — insert one
-`reconciliation_events` row naming the `entity_type`, `entity_id`, an
-`action` (e.g. `moved_to_completed`, `link_repointed`, `added`, `removed`),
-and a `detail` sentence saying what changed and why. Set
-`reconciliation_runs.finished_at` once you're done.
+**Before mutating anything**, copy the whole database file to a timestamped
+snapshot (e.g. `cp <db> <db-dir>/snapshots/<db-stem>-<run_date>.db`), creating
+the `snapshots/` directory if needed. This is the rollback floor: restoring
+that file always undoes the run.
+
+Then insert one row into `reconciliation_runs` for this run (`run_date` =
+today, `snapshot_path` = the snapshot you just wrote, `source_summary` noting
+which files you consulted). For every change you make to `projects`,
+`pull_requests`, `project_pull_requests`, or `infrastructure_items` — a bucket
+move, a relabel, a link repoint, an insert, a delete — insert one
+`reconciliation_events` row with:
+
+- `entity_type`, `entity_id`, an `action` (e.g. `moved_to_completed`,
+  `link_repointed`, `added`, `removed`);
+- `old_value` and `new_value` as JSON objects making the change mechanically
+  reversible — for an INSERT, `old_value` is NULL and `new_value` is the new
+  row's key columns; for a DELETE, `new_value` is NULL and `old_value` is the
+  ENTIRE row being deleted (so it can be reinserted); for an UPDATE, both hold
+  only the columns that changed, before and after. A change to a
+  `project_pull_requests` LINK (adding, removing, or repointing) is logged
+  with `entity_type = 'project_pull_request'`, `entity_id = 0`, and the link's
+  identity — `project_id`, `pull_request_id`, and `role` — in the JSON (since
+  the join table has no single id);
+- `detail`, a sentence saying what changed and why.
+
+Set `reconciliation_runs.finished_at` once you're done.
 
 ## Output
 
