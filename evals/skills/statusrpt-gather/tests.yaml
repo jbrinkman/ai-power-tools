@@ -94,21 +94,29 @@
         mode: arrayContains
         match: { pr_number: "121" }
 
-    # Criterion 5 — sprint tasks copied VERBATIM, including Not Started (gather does not exclude)
+    # Criterion 5 — sprint tasks copied VERBATIM, including Not Started (gather does not exclude).
+    # The contract normalizes Taskei's shortId -> id, so match on id.
     - type: javascript
       value: file://assertions/jsonBundle.js
       config:
         label: "C5 sprint.tasks includes the Not Started item (gather must not exclude it)"
         path: "sprint.tasks"
         mode: arrayContains
-        match: { shortId: "SAMP-3" }
+        match: { id: "SAMP-3", workflow_action: "Not Started" }
     - type: javascript
       value: file://assertions/jsonBundle.js
       config:
         label: "C5 sprint.tasks includes the In Review item"
         path: "sprint.tasks"
         mode: arrayContains
-        match: { shortId: "SAMP-1" }
+        match: { id: "SAMP-1" }
+    - type: javascript
+      value: file://assertions/jsonBundle.js
+      config:
+        label: "C5 all three sprint tasks carried (none dropped)"
+        path: "sprint.tasks"
+        mode: arrayLength
+        expected: 3
 
     # Criterion 6 — narratives normalized from Chorus
     - type: javascript
