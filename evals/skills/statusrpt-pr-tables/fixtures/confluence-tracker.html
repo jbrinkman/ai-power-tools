@@ -1,0 +1,36 @@
+<!-- SAMPLE / SYNTHETIC Confluence "PR Status Tracker" fetch output. Deliberately exercises variance: a project split across MULTIPLE rows, and a single row covering MULTIPLE PRs. All fabricated. -->
+<table>
+  <tbody>
+    <tr><th>Tool</th><th>Author</th><th>Issue</th><th>PR</th><th>Status</th></tr>
+
+    <!-- Already tracked (sample-framework#30) -- tracker mirrors it, no new intake needed. -->
+    <tr><td>Sample Framework Adapter</td><td>Dana</td>
+        <td><a href="https://github.com/sample-org/sample-framework/issues/29">#29</a></td>
+        <td><a href="https://github.com/sample-org/sample-framework/pull/30">PR 30</a></td>
+        <td>Open</td></tr>
+
+    <!-- VARIANCE 1: one project split across TWO rows, each a different PR, same conceptual project.
+         Not yet in the DB at all -- intake must recognize both rows belong to ONE new project
+         ("Brand New Integration") with two linked PRs (roles: "implementation", "documentation"). -->
+    <tr><td>Brand New Integration</td><td>Riley</td>
+        <td><a href="https://github.com/sample-org/brand-new/issues/4">#4</a></td>
+        <td><a href="https://github.com/sample-org/brand-new/pull/5">PR 5</a></td>
+        <td>Open</td></tr>
+    <tr><td>Brand New Integration (docs)</td><td>Riley</td>
+        <td></td>
+        <td><a href="https://github.com/sample-org/brand-new-docs/pull/2">PR 2</a></td>
+        <td>Open</td></tr>
+
+    <!-- VARIANCE 2: a single row listing MULTIPLE PRs for one new project -- intake must link all of them. -->
+    <tr><td>Sample Multi-Part Feature</td><td>Dana</td>
+        <td><a href="https://github.com/sample-org/multi-part/issues/9">#9</a></td>
+        <td><a href="https://github.com/sample-org/multi-part/pull/10">PR 10</a>, <a href="https://github.com/sample-org/multi-part/pull/11">PR 11</a></td>
+        <td>Open</td></tr>
+
+    <!-- New Infrastructure item: tf-provider#130 open, not yet in infrastructure_items. -->
+    <tr><td>sample_subnet_group import</td><td>Dana</td>
+        <td><a href="https://github.com/sample-org/tf-provider/issues/129">#129</a></td>
+        <td><a href="https://github.com/sample-org/tf-provider/pull/130">PR 130</a></td>
+        <td>Awaiting Merge</td></tr>
+  </tbody>
+</table>

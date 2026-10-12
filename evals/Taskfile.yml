@@ -22,6 +22,21 @@ tasks:
     env:
       GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
 
+  eval:statusrpt-pr-tables:
+    desc: Evaluate the statusrpt-pr-tables skill (seeds a fresh run.db first)
+    vars:
+      PRT_DIR: skills/statusrpt-pr-tables/fixtures
+    cmds:
+      - "mkdir -p tmp"
+      - "rm -f {{.GH_MOCK_LOG_FILE}}"
+      # Seed a fresh DB from schema + seed data before the one reconciliation run.
+      - "rm -f {{.PRT_DIR}}/run.db"
+      - "sqlite3 {{.PRT_DIR}}/run.db < {{.PRT_DIR}}/schema.sql"
+      - "sqlite3 {{.PRT_DIR}}/run.db < {{.PRT_DIR}}/seed.sql"
+      - "npx promptfoo eval --no-cache --config {{.CONFIG}} --filter-metadata skill=statusrpt-pr-tables --delay 0"
+    env:
+      GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
+
   eval:all:
     desc: Evaluate all skills (CONFIG=... to pick provider)
     cmds:

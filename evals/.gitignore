@@ -1,3 +1,5 @@
 # Generated evaluation artifacts
 results.html
 tmp/
+run.db
+skills/statusrpt-pr-tables/fixtures/run.db
