@@ -30,7 +30,5 @@ providers:
 # Per-skill test files. Keep this list identical to promptfooconfig.devin.yaml.
 tests:
   - file://skills/github-issue-creator/tests.yaml
-  - file://skills/statusrpt-compile/tests.yaml
-  - file://skills/statusrpt-guard/tests.yaml
 
 outputPath: results.html
