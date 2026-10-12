@@ -1,0 +1,179 @@
+# Per-skill EDD eval suite for statusrpt-compile.
+#
+# Design A input contract: the compile skill READS pre-fetched source files from a
+# fixtures directory (report-prev.md, gh-api-responses.json, confluence-tracker.html,
+# taskei-sprint.json, chorus-narratives.json) and PRODUCES a single compiled status
+# report (markdown) as its output. Live fetching is a separate deterministic script,
+# NOT part of this graded unit.
+#
+# The master promptfooconfig.yaml defaults skillFile to the github-issue-creator skill,
+# so EVERY test here overrides skillFile (and sets fixturesDir) in its own vars.
+# {{fixturesDir}} resolves relative to the evals/ working directory where promptfoo runs.
+#
+# Each test grades the produced report against ONE distinct criterion. Criteria are
+# deliberately independent (not variations of one check) to satisfy Stage 3 §2 (>=3
+# distinct criteria). Written RED: this suite exists before SKILL.md and defines the bar.
+
+# ─── Criterion 1: Report initialization & carried-over-content cleanup ───
+- description: "C1 init — strips **New**, strikethrough, double-status spans; resets Lowlights/Insights; rewrites H1 date"
+  metadata:
+    skill: statusrpt-compile
+    criterion: initialization
+  vars:
+    skillFile: ../../skills/statusrpt-compile/SKILL.md
+    fixturesDir: skills/statusrpt-compile/fixtures
+    request: >
+      Compile the weekly status report dated 2099-01-12 from the pre-fetched sources in
+      {{fixturesDir}}. Use report-prev.md as the base. Output the full compiled report.
+  assert:
+    - type: llm-rubric
+      value: >
+        The output is a compiled status report whose H1 title date is 2099-01-12 (NOT
+        2099-01-05). It contains NO literal "**New**" labels carried over from the base
+        report's prior rows (newly-changed rows this week MAY add **New**, but the base's
+        Sample Cache Backend row must have lost its old **New**). It contains no leftover
+        ~~strikethrough~~ markers. The ## Lowlights and ## Insights sections are each reset
+        to a single "* none". PASS only if all of these hold.
+    - type: not-contains
+      value: "~~"
+
+# ─── Criterion 2: Submitted-table PR reconciliation (merge / supersede / reject) ───
+- description: "C2 submitted reconcile — newly-merged→Merged, superseded→update link, rejected→Dropped"
+  metadata:
+    skill: statusrpt-compile
+    criterion: submitted-reconciliation
+  vars:
+    skillFile: ../../skills/statusrpt-compile/SKILL.md
+    fixturesDir: skills/statusrpt-compile/fixtures
+    request: >
+      Compile the 2099-01-12 report from {{fixturesDir}}. Reconcile the Submitted table
+      against gh-api-responses.json. Output the full compiled report.
+  assert:
+    - type: llm-rubric
+      value: >
+        Judge the compiled report's handling of the three Submitted rows using
+        gh-api-responses.json as ground truth. PASS only if ALL THREE hold:
+        (a) "Sample Framework Adapter" (sample-framework#30, merged) is MOVED out of
+            Submitted into Merged (or Completed) — it is NOT still listed under Submitted;
+        (b) "Demo CLI" (demo-cli#40, closed & superseded by open #41) STAYS in Submitted
+            but its PR link now points to PR 41, not PR 40;
+        (c) "Sample Session Store" (sample-session#50, closed-rejected) is MOVED to the
+            Dropped table with a reason referencing the maintainer rejection.
+    - type: contains
+      value: "demo-cli/pull/41"
+
+# ─── Criterion 3: Release verification for Merged→Completed promotion ───
+- description: "C3 release gate — promote only when a release changelog names the PR; otherwise flag"
+  metadata:
+    skill: statusrpt-compile
+    criterion: release-verification
+  vars:
+    skillFile: ../../skills/statusrpt-compile/SKILL.md
+    fixturesDir: skills/statusrpt-compile/fixtures
+    request: >
+      Compile the 2099-01-12 report from {{fixturesDir}}. For Merged items, only promote to
+      Completed when a release's notes reference the PR. Output the full compiled report.
+  assert:
+    - type: llm-rubric
+      value: >
+        Using gh-api-responses.json: PASS only if BOTH hold. (a) sample-framework#30 — its
+        release v2.1.0 body explicitly references #30, so if promoted to Completed it cites
+        v2.1.0 (the confirmed including release), NOT a different/latest tag. (b)
+        sample-search#20 (Merged) — release v3.0.0 exists but its body does NOT mention #20,
+        so the report must NOT silently move it to Completed; it stays in Merged and is
+        flagged for manual verification (e.g. "release found, PR not confirmed in changelog").
+        FAIL if #20 is promoted to Completed with v3.0.0.
+
+# ─── Criterion 4: Infrastructure/Terraform table reconciliation (the gap in the old skills) ───
+- description: "C4 infra reconcile — relabel newly-merged (keep+**New**), remove prior-week-merged, ADD new tracker item"
+  metadata:
+    skill: statusrpt-compile
+    criterion: infrastructure-reconciliation
+  vars:
+    skillFile: ../../skills/statusrpt-compile/SKILL.md
+    fixturesDir: skills/statusrpt-compile/fixtures
+    request: >
+      Compile the 2099-01-12 report from {{fixturesDir}}. Reconcile the Infrastructure table
+      against gh-api-responses.json and add any new infra PRs from confluence-tracker.html.
+      Output the full compiled report.
+  assert:
+    - type: llm-rubric
+      value: >
+        Judge ONLY the Infrastructure table of the compiled report against ground truth.
+        PASS only if ALL hold:
+        (a) tf-provider#121 (newly merged this week) is relabeled to a green "Merged" status
+            span, carries a **New** marker, and REMAINS in the table this week;
+        (b) tf-provider#111 (already "Merged" in the base from a prior week) is REMOVED from
+            the table (it had its week of visibility);
+        (c) tf-provider#101 (still open) remains "Awaiting Merge", unchanged;
+        (d) tf-provider#130 — present in confluence-tracker.html but absent from the base
+            report — is ADDED as a new Infrastructure row (issue #129, PR 130, Awaiting Merge).
+    - type: contains
+      value: "tf-provider/pull/130"
+
+# ─── Criterion 5: New-PR intake from the Confluence tracker into Submitted ───
+- description: "C5 tracker intake — add a PR present in tracker but absent from report tables"
+  metadata:
+    skill: statusrpt-compile
+    criterion: tracker-intake
+  vars:
+    skillFile: ../../skills/statusrpt-compile/SKILL.md
+    fixturesDir: skills/statusrpt-compile/fixtures
+    request: >
+      Compile the 2099-01-12 report from {{fixturesDir}}. Add any PRs from
+      confluence-tracker.html that are not yet in the report tables. Output the full report.
+  assert:
+    - type: llm-rubric
+      value: >
+        PASS only if "Brand New Integration" (brand-new#5), which appears in
+        confluence-tracker.html but NOT in report-prev.md, has been added to the Submitted
+        table of the compiled report with its PR 5 link. FAIL if it is missing or placed in
+        the wrong table.
+    - type: contains
+      value: "brand-new/pull/5"
+
+# ─── Criterion 6: All-sections summary generation + Not-Started exclusion ───
+- description: "C6 summary — regenerate This Week's Progress + exec summary across all sections; exclude Not Started; preserve Completed"
+  metadata:
+    skill: statusrpt-compile
+    criterion: summary-generation
+  vars:
+    skillFile: ../../skills/statusrpt-compile/SKILL.md
+    fixturesDir: skills/statusrpt-compile/fixtures
+    request: >
+      Compile the 2099-01-12 report from {{fixturesDir}}. Regenerate the This Week's Progress
+      section and the executive summary from the resulting changes across ALL sections.
+      Output the full compiled report.
+  assert:
+    - type: llm-rubric
+      value: >
+        PASS only if ALL hold for the compiled report:
+        (a) The "## This Week's Progress" bullet list reflects THIS week's reconciled changes
+            (e.g. Sample Framework Adapter merged/released, Demo CLI link updated to #41,
+            Sample Session Store dropped, infra #121 merged, Brand New Integration added) and
+            does NOT retain the prior week's "Demo CLI moved to In Review" bullet;
+        (b) The executive summary prose between "Hello everyone," and "### Completed Projects"
+            is rewritten (prior-week prose gone) and is objective (no "great/exciting/milestone");
+        (c) The "Not Started" Taskei item SAMP-4 is EXCLUDED from both progress and summary;
+        (d) The "### Completed Projects" table and its "**Note:**" line are preserved verbatim.
+    - type: not-contains
+      value: "In Review"
+
+# ─── Criterion 7: Non-destructive integrity — unrelated content preserved ───
+- description: "C7 integrity — rows/sections not implicated by the sources are preserved unchanged"
+  metadata:
+    skill: statusrpt-compile
+    criterion: integrity
+  vars:
+    skillFile: ../../skills/statusrpt-compile/SKILL.md
+    fixturesDir: skills/statusrpt-compile/fixtures
+    request: >
+      Compile the 2099-01-12 report from {{fixturesDir}}. Output the full compiled report.
+  assert:
+    - type: llm-rubric
+      value: >
+        PASS only if the compiled report preserves content NOT implicated by the sources:
+        the Completed Projects "Sample Vector Adapter v1.0.0" row still present; the Dropped
+        "Obsolete Connector" row still present; the Merged "Sample Cache Backend" row still
+        present (its **New** merely stripped, not the row removed); section headings and
+        table structure intact. FAIL if any un-implicated row or section was dropped or mangled.
