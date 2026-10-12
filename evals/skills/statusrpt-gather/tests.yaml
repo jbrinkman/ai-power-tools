@@ -1,0 +1,128 @@
+# Per-skill EDD eval suite for statusrpt-gather.
+#
+# gather reads an ALREADY-RECONCILED database (statusrpt-pr-tables has already
+# run — gather does not drive reconciliation itself) plus Taskei + Chorus +
+# the prior report, and emits ONE normalized bundle.json for statusrpt-compile
+# to consume. gather must NOT editorialize — e.g. it keeps a Not-Started
+# sprint task in the bundle verbatim; the exclusion rule belongs to compile's
+# house-style judgment, not gather's assembly.
+#
+# Output is a JSON document, so assertions use jsonBundle.js (parses fenced or
+# bare JSON from stdout, checks a dotted path). The Taskfile seeds the DB from
+# reconciled-seed.sql before the run, same pattern as statusrpt-pr-tables.
+#
+# ONE test, multiple distinct criteria (Stage 3 §2 needs >=3) — assembling the
+# bundle is one unit of work read against several independent facts, same
+# reasoning as pr-tables' single reconciliation-run test.
+
+- description: >
+    Assemble one bundle from the reconciled DB + Taskei + Chorus + the prior
+    report: faithful normalization (not editorializing), continuity carry-
+    forward from the prior report, and provenance.
+  metadata:
+    skill: statusrpt-gather
+  vars:
+    skillFile: ../../skills/statusrpt-gather/SKILL.md
+    fixturesDir: skills/statusrpt-gather/fixtures
+    dbPath: skills/statusrpt-gather/fixtures/run.db
+    request: >
+      Assemble a status-report bundle for 2099-01-12 from: the already-
+      reconciled database at {{dbPath}}, the Taskei sprint in
+      {{fixturesDir}}/taskei-sprint.json, the Chorus narratives in
+      {{fixturesDir}}/chorus-narratives.json, and the prior report at
+      {{fixturesDir}}/report-prev.md. Output ONLY the bundle as JSON.
+  assert:
+    # Criterion 1 — basic shape and provenance
+    - type: javascript
+      value: file://assertions/jsonBundle.js
+      config:
+        label: "C1 report_date set correctly"
+        path: "report_date"
+        expected: "2099-01-12"
+    - type: javascript
+      value: file://assertions/jsonBundle.js
+      config:
+        mode: exists
+        label: "C1 prior_report_path present"
+        path: "prior_report_path"
+
+    # Criterion 2 — projects grouped by bucket, faithfully from the DB (not re-judged)
+    - type: javascript
+      value: file://assertions/jsonBundle.js
+      config:
+        label: "C2 completed includes Sample Framework Adapter"
+        path: "projects.completed"
+        mode: arrayContains
+        match: { name: "Sample Framework Adapter" }
+    - type: javascript
+      value: file://assertions/jsonBundle.js
+      config:
+        label: "C2 submitted includes Sample Multi-Part Feature"
+        path: "projects.submitted"
+        mode: arrayContains
+        match: { name: "Sample Multi-Part Feature" }
+    - type: javascript
+      value: file://assertions/jsonBundle.js
+      config:
+        label: "C2 dropped includes Sample Session Store"
+        path: "projects.dropped"
+        mode: arrayContains
+        match: { name: "Sample Session Store" }
+
+    # Criterion 3 — this week's changes drawn from reconciliation_events, not re-derived
+    - type: javascript
+      value: file://assertions/jsonBundle.js
+      config:
+        label: "C3 changes_this_week includes the Framework Adapter completion event"
+        path: "changes_this_week"
+        mode: arrayContains
+        match: { action: "moved_to_completed" }
+    - type: javascript
+      value: file://assertions/jsonBundle.js
+      config:
+        label: "C3 changes_this_week includes the Session Store drop event"
+        path: "changes_this_week"
+        mode: arrayContains
+        match: { action: "moved_to_dropped" }
+
+    # Criterion 4 — infrastructure items carried faithfully, including is_new
+    - type: javascript
+      value: file://assertions/jsonBundle.js
+      config:
+        label: "C4 infrastructure includes PR 121 (newly merged)"
+        path: "infrastructure"
+        mode: arrayContains
+        match: { pr_number: "121" }
+
+    # Criterion 5 — sprint tasks copied VERBATIM, including Not Started (gather does not exclude)
+    - type: javascript
+      value: file://assertions/jsonBundle.js
+      config:
+        label: "C5 sprint.tasks includes the Not Started item (gather must not exclude it)"
+        path: "sprint.tasks"
+        mode: arrayContains
+        match: { shortId: "SAMP-3" }
+    - type: javascript
+      value: file://assertions/jsonBundle.js
+      config:
+        label: "C5 sprint.tasks includes the In Review item"
+        path: "sprint.tasks"
+        mode: arrayContains
+        match: { shortId: "SAMP-1" }
+
+    # Criterion 6 — narratives normalized from Chorus
+    - type: javascript
+      value: file://assertions/jsonBundle.js
+      config:
+        label: "C6 narratives includes the Framework Adapter narrative doc"
+        path: "narratives"
+        mode: arrayContains
+        match: { doc_id: "SAMPLEdoc01" }
+
+    # Criterion 7 — provenance / sources_consulted present (Stage-4 audit trail input)
+    - type: javascript
+      value: file://assertions/jsonBundle.js
+      config:
+        mode: exists
+        label: "C7 sources_consulted present"
+        path: "sources_consulted"

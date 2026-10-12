@@ -37,6 +37,20 @@ tasks:
     env:
       GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
 
+  eval:statusrpt-gather:
+    desc: Evaluate the statusrpt-gather skill (seeds a fresh run.db first)
+    vars:
+      GATHER_DIR: skills/statusrpt-gather/fixtures
+    cmds:
+      - "mkdir -p tmp"
+      - "rm -f {{.GH_MOCK_LOG_FILE}}"
+      - "rm -f {{.GATHER_DIR}}/run.db"
+      - "sqlite3 {{.GATHER_DIR}}/run.db < {{.GATHER_DIR}}/schema.sql"
+      - "sqlite3 {{.GATHER_DIR}}/run.db < {{.GATHER_DIR}}/reconciled-seed.sql"
+      - "npx promptfoo eval --no-cache --config {{.CONFIG}} --filter-metadata skill=statusrpt-gather --delay 0"
+    env:
+      GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
+
   eval:all:
     desc: Evaluate all skills (CONFIG=... to pick provider)
     cmds:

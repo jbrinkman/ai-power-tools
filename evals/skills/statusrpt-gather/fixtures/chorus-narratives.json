@@ -1,0 +1,10 @@
+{
+  "_comment": "SAMPLE / SYNTHETIC Chorus Narratives folder listing. All fabricated.",
+  "folder": { "folder_id": "fld_SAMPLE000001", "name": "Narratives" },
+  "docs": [
+    { "doc_id": "SAMPLEdoc01", "title": "Narrative for Sample Framework Adapter", "owner": "dana",
+      "updated_at": 4084992000 },
+    { "doc_id": "SAMPLEdoc02", "title": "Sample Multi-Part Feature: Gap Narrative", "owner": "riley",
+      "updated_at": 4081363200 }
+  ]
+}

@@ -4,3 +4,4 @@ tmp/
 run.db
 skills/statusrpt-pr-tables/fixtures/run.db
 skills/statusrpt-pr-tables/fixtures/snapshots/
+skills/statusrpt-gather/fixtures/run.db

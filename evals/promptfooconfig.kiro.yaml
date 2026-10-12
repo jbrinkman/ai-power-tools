@@ -31,5 +31,6 @@ providers:
 tests:
   - file://skills/github-issue-creator/tests.yaml
   - file://skills/statusrpt-pr-tables/tests.yaml
+  - file://skills/statusrpt-gather/tests.yaml
 
 outputPath: results.html
