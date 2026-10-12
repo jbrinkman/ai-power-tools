@@ -18,14 +18,14 @@ defaultTest:
   options:
     provider: "exec: node ./providers/kiro.js"
     config:
-      model: "claude-sonnet-4.6"
+      model: "claude-sonnet-5.5"
 
 # Target provider that executes the skill.
 providers:
   - id: "exec: node ./providers/kiro.js"
-    label: "Kiro claude-sonnet-4.6"
+    label: "Kiro claude-sonnet-5.5"
     config:
-      model: "claude-sonnet-4.6"
+      model: "claude-sonnet-5.5"
 
 # Per-skill test files. Keep this list identical to promptfooconfig.devin.yaml.
 tests:
