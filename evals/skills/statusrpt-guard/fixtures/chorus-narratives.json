@@ -1,0 +1,11 @@
+{
+  "_comment": "SAMPLE / SYNTHETIC Chorus Narratives folder listing (ChorusDocRead list-content shape, trimmed). All fabricated.",
+  "folder": { "folder_id": "fld_SAMPLE000001", "name": "Narratives" },
+  "docs": [
+    { "doc_id": "SAMPLEdoc01", "title": "Narrative for Brand New Integration", "owner": "riley",
+      "updated_at": 4084992000,
+      "_expect": "Narrative deliverable backing the Brand New Integration — compile may reference it in Demos & Documentation / narrative tracking." },
+    { "doc_id": "SAMPLEdoc02", "title": "Sample Search: Gap Narrative", "owner": "dana",
+      "updated_at": 4081363200 }
+  ]
+}
