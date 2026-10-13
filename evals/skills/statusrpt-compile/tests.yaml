@@ -8,16 +8,19 @@
 # only needs to prove compile WRITES correctly, not re-implement the whole
 # review rulebook.
 #
-# House-style ground truth used for these criteria: customer-reports/README.md
-# (badge vocabulary, "On Track not In Progress when dated", purple=internal)
-# and the real report shape read from the project's own
-# 2026-status-reports/*.md (section order: Summary -> Last Week's Progress ->
-# This Week's Focus -> Website and Documentation Plan -> Dependencies -> Risks
-# -> Lowlights -> Goals -> Status Details incl. Infrastructure bullets ->
-# Staffing).
+# DETERMINISTIC-FIRST: most house-style rules are mechanically checkable
+# (section headers present, a closed badge vocabulary, no plain-text status
+# words, no leftover meta-commentary, a named task absent/present) — none of
+# that needs an LLM judge, and deterministic checks are cheap to run and
+# don't drift between runs. llm-rubric is reserved for the handful of
+# criteria that genuinely require reading comprehension (e.g. "does the
+# dropped reason match the bundle's stated reason").
 #
-# Output is prose, not JSON/DB state, so criteria are graded with llm-rubric
-# (same grading style the mature report-review-guidelines skill uses).
+# House-style ground truth: customer-reports/README.md (badge vocabulary,
+# "On Track not In Progress when dated", purple=internal, a SEPARATE
+# red/orange/yellow High/Medium/Low vocabulary for Risk severity) and the
+# real report shape read from the project's own 2026-status-reports/*.md.
+#
 # ONE test: compiling one bundle into one report is one atomic unit of work.
 
 - description: >
@@ -36,79 +39,144 @@
       {{fixturesDir}}/bundle.json, using {{fixturesDir}}/report-prev.md as the
       prior week's report for continuity. Follow the amazon-elasticache-
       agentic report house style (see customer-reports/README.md if you need
-      the badge vocabulary). Output ONLY the compiled report markdown.
+      the badge vocabulary). Output ONLY the compiled report markdown — no
+      preamble, no explanation of what you did.
   assert:
-    # Criterion 1 — required section set, in the house-style order
-    - type: llm-rubric
-      value: >
-        The output contains, in this relative order, at minimum the sections:
-        a Summary section with an Overall Status badge, a "Last Week's
-        Progress" section, a "This Week's Focus" section, a "Risks" section,
-        a "Goals" section, a "Status Details" (or equivalent project-details)
-        section that includes the Infrastructure items, and a "Staffing"
-        section. PASS only if all of these are present and in this relative
-        order; FAIL if any is missing or appears out of order.
+    # --- Criterion 1: required sections present, in house-style order (deterministic) ---
+    - type: javascript
+      value: |
+        const headings = ["## Summary", "## Last Week's Progress", "## This Week's Focus",
+                           "## Risks", "## Goals", "## Status Details", "## Staffing"];
+        const positions = headings.map(h => output.indexOf(h));
+        const missing = headings.filter((h, i) => positions[i] === -1);
+        if (missing.length > 0) {
+          return { pass: false, score: 0, reason: `Missing section(s): ${missing.join(', ')}` };
+        }
+        const sorted = positions.every((p, i) => i === 0 || p > positions[i - 1]);
+        return sorted
+          ? { pass: true, score: 1, reason: 'All required sections present and in order' }
+          : { pass: false, score: 0, reason: `Sections present but out of order: ${headings.join(' -> ')}` };
+    # Infrastructure must be a SUBsection (###) inside Status Details, never a top-level ## section.
+    - type: javascript
+      value: |
+        const hasTopLevel = /^##\s+Infrastructure\s*$/m.test(output);
+        const hasSubsection = /^###\s+Infrastructure\s*$/m.test(output);
+        if (hasTopLevel) return { pass: false, score: 0, reason: 'Infrastructure rendered as a top-level ## section instead of a ### subsection' };
+        return hasSubsection
+          ? { pass: true, score: 1, reason: 'Infrastructure correctly rendered as a ### subsection' }
+          : { pass: false, score: 0, reason: 'No ### Infrastructure subsection found' };
 
-    # Criterion 2 — valid badge vocabulary only
-    - type: llm-rubric
-      value: >
-        Every status badge in the output uses ONLY words from this exact
-        approved list: Done, On Track, In Progress, Not Started, Blocked,
-        Off Track, At Risk, Paused, Pending Updates — rendered as
-        <span class="CLASS">WORD</span>. FAIL if any status is rendered as
-        plain text (e.g. "Completed", "In Review", "Pending") instead of one
-        of these exact badge words, or uses a badge word not on this list.
+    # --- Criterion 2: badge vocabulary is closed and well-formed (deterministic) ---
+    # TWO separate closed vocabularies exist in house style: status badges, and the
+    # Risk-severity badges (red=High/orange=Medium/yellow=Low). A badge must match
+    # one of the two, with its class consistent with the word.
+    - type: javascript
+      value: |
+        const statusWords = {
+          green: ['Done', 'On Track', 'In Progress'],
+          gray: ['Not Started'],
+          red: ['Blocked', 'Off Track'],
+          yellow: ['At Risk'],
+          paused: ['Paused'],
+          pending: ['Pending Updates'],
+        };
+        const riskWords = { red: ['High'], orange: ['Medium'], yellow: ['Low'] };
+        const spanRe = /<span class="(\w+)">([^<]+)<\/span>/g;
+        let m, bad = [];
+        while ((m = spanRe.exec(output)) !== null) {
+          const [, cls, wordRaw] = m;
+          const word = wordRaw.trim();
+          const okStatus = statusWords[cls] && statusWords[cls].includes(word);
+          const okRisk = riskWords[cls] && riskWords[cls].includes(word);
+          if (!okStatus && !okRisk) bad.push(`class="${cls}">${word}`);
+        }
+        if (bad.length > 0) {
+          return { pass: false, score: 0, reason: `Invalid badge(s): ${bad.join(', ')}` };
+        }
+        return { pass: true, score: 1, reason: 'All badges use an approved vocabulary (status or risk-severity) with a matching class' };
+    # No plain-text status words standing in for a badge.
+    - type: javascript
+      value: |
+        const banned = ['>Completed<', '>In Review<', '>Pending<', '>TODO<'];
+        const hit = banned.find(b => output.includes(b));
+        return hit
+          ? { pass: false, score: 0, reason: `Found plain-text status standing in for a badge: ${hit}` }
+          : { pass: true, score: 1, reason: 'No plain-text status words found' };
 
-    # Criterion 3 — On Track not In Progress when a date is present
-    - type: llm-rubric
-      value: >
-        The Sample Framework Adapter completion (merged and released in
-        v2.1.0, with a concrete date/version) is NOT rendered with an
-        "In Progress" badge. Per house style, a dated/completed item uses
-        "On Track" or "Done", never "In Progress", because "In Progress" is
-        reserved for undated items. FAIL if the output uses "In Progress" for
-        this dated item.
+    # --- Criterion 3: dated items use On Track/Done, never In Progress (deterministic) ---
+    # The Sample Framework Adapter is complete with a concrete release version; every
+    # badge immediately attached to ITS OWN bullet/line (not a neighboring item's) must
+    # not be "In Progress". Scope tightly to one line at a time to avoid false positives
+    # from a different item's badge sitting nearby.
+    - type: javascript
+      value: |
+        const lines = output.split('\n').filter(l => l.includes('Sample Framework Adapter'));
+        if (lines.length === 0) return { pass: false, score: 0, reason: 'Sample Framework Adapter not mentioned at all' };
+        const bad = lines.filter(l => /<span class="\w+">In Progress<\/span>/.test(l));
+        return bad.length > 0
+          ? { pass: false, score: 0, reason: `Sample Framework Adapter (dated, released v2.1.0) badged In Progress on line: "${bad[0].trim()}"` }
+          : { pass: true, score: 1, reason: 'Sample Framework Adapter never badged In Progress on its own line' };
 
-    # Criterion 4 — Not-Started sprint task excluded from the written report
-    # (gather deliberately keeps it in the bundle; compile's house-style
-    # judgment is what drops it from the customer-facing narrative).
-    - type: llm-rubric
-      value: >
-        The sprint task "Backlog-only idea, not started" (bundle id SAMP-3,
-        workflow_action "Not Started", with no assignee) does NOT appear
-        anywhere in the compiled report's This Week's Focus or Last Week's
-        Progress sections. FAIL if it is mentioned in either section.
+    # --- Criterion 4: Not-Started sprint task excluded entirely (deterministic) ---
+    - type: not-contains
+      value: "Backlog-only idea, not started"
+    - type: not-contains
+      value: "SAMP-3"
 
-    # Criterion 5 — dropped project stated factually with its reason, in Lowlights or similar
+    # --- Criterion 5: dropped project mentioned with its REAL reason (deterministic substring + rubric for paraphrase fidelity) ---
+    - type: contains
+      value: "Sample Session Store"
+    - type: javascript
+      value: |
+        const pass = /not aligned with project direction/i.test(output);
+        return pass
+          ? { pass: true, score: 1, reason: 'Dropped reason text present' }
+          : { pass: false, score: 0, reason: 'Expected substance "not aligned with project direction" not found anywhere in the output' };
     - type: llm-rubric
       value: >
-        The report mentions that "Sample Session Store" was dropped/closed,
-        and states the real reason from the bundle (maintainers closed it as
-        not aligned with project direction) rather than a vague placeholder
-        like "no longer needed" or omitting the reason entirely. FAIL if the
-        project is not mentioned at all, or if the reason given contradicts
-        or omits the bundle's dropped_reason.
+        The stated reason for dropping "Sample Session Store" is faithful to
+        "maintainers closed it as not aligned with project direction" — not
+        contradicted, not replaced with a vaguer placeholder like "no longer
+        needed". FAIL if the report's stated reason contradicts or omits the
+        substance of that reason.
 
-    # Criterion 6 — Infrastructure rendered as a bullet list, not a markdown table
-    - type: llm-rubric
-      value: >
-        The Infrastructure items (sample_user dual-password support,
-        sample_cache_param_group name_prefix) are rendered as a bullet list
-        inside the Status Details section, each bullet carrying its PR link
-        and a status badge — NOT as a markdown table. FAIL if Infrastructure
-        appears as a table, or if either item is missing its PR link.
+    # --- Criterion 6: Infrastructure rendered as bullets, not a table (deterministic) ---
+    - type: javascript
+      value: |
+        const parts = output.split(/^###\s+Infrastructure\s*$/m);
+        if (parts.length < 2) return { pass: false, score: 0, reason: 'No ### Infrastructure subsection to check' };
+        const section = parts[1].split(/\n##?\s/)[0]; // up to the next heading of any level
+        const hasTableRow = /^\s*\|.*\|.*\|/m.test(section);
+        return hasTableRow
+          ? { pass: false, score: 0, reason: 'Infrastructure section contains a markdown table (pipe-delimited row)' }
+          : { pass: true, score: 1, reason: 'Infrastructure section has no markdown table' };
+    - type: contains
+      value: "pull/121"
+    - type: contains
+      value: "pull/101"
 
-    # Criterion 7 — Staffing has no personal names
+    # --- Criterion 7: Staffing has no personal names (rubric — requires knowing what a name is) ---
     - type: llm-rubric
       value: >
-        The Staffing section reports counts/role information only (e.g.
-        "X of Y developers") and contains NO specific person names. FAIL if
-        any individual's name appears in the Staffing section.
+        The Staffing section (## Staffing) reports counts/role information
+        only (e.g. "X of Y developers") and contains NO specific individual's
+        name. FAIL if any person's name appears in that section.
 
-    # Criterion 8 — no leftover placeholder or template artifacts
-    - type: llm-rubric
-      value: >
-        The output contains no unresolved template placeholders (e.g. "TBD",
-        "{{...}}", "<INSERT ...>", "Lorem ipsum") and no literal word
-        "editorializ" or meta-commentary about the compilation process
-        itself. FAIL if any such artifact appears.
+    # --- Criterion 8: no leftover meta-commentary or placeholders (deterministic) ---
+    - type: not-contains
+      value: "TBD"
+    - type: not-contains
+      value: "Lorem ipsum"
+    - type: not-contains
+      value: "<INSERT"
+    - type: javascript
+      value: |
+        // The compiled report must open with real report content (an H1 title or a
+        // greeting line) — not a sentence ABOUT the task itself (e.g. narrating a
+        // file-path decision).
+        const firstLine = output.trim().split('\n')[0];
+        const metaPatterns = [/\bI('ll| will)\b/i, /\brelative to\b/i, /\bthe request\b/i, /\bI('m| am) going to\b/i];
+        const isMeta = metaPatterns.some(p => p.test(firstLine));
+        return isMeta
+          ? { pass: false, score: 0, reason: `Output opens with meta-commentary instead of report content: "${firstLine}"` }
+          : { pass: true, score: 1, reason: 'Output opens with report content, no meta-commentary' };
