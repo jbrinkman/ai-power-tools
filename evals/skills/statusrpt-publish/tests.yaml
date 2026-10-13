@@ -1,0 +1,150 @@
+# Per-skill test cases for statusrpt-publish.
+#
+# publish is the pipeline's landing stage: it takes the already-compiled,
+# already-sentinel-passed report markdown plus the bundle's report_date, writes
+# the report into the destination repo under the house naming/path convention,
+# then runs the git+gh flow (sync main -> feature branch -> add -> commit ->
+# push -> open PR with the H1 as title). Merging stays with a human.
+#
+# The mock `git`/`gh` on PATH is a CLOSED ALLOWLIST (see evals/mocks/git): it
+# recognizes ONLY the exact fixed sequence the skill specs and fails loudly on
+# anything else (status/remote/rev-parse/etc.). That constrains the skill by
+# design (per user direction) rather than making the mock accommodate whatever
+# an agent decides to probe — so asserting the exact commands below is a real
+# check, not a hope.
+#
+# ISOLATION: these 3 test cases run CONCURRENTLY (promptfoo's default
+# concurrency), so each gets its OWN `logFile` (mock command log) and
+# `destRoot` (scratch "repo" the file gets written into) — a shared log/dest
+# across concurrent cases let one test's commands (e.g. a real `pr create`)
+# contaminate another's absence check (e.g. `pr-exists`'s `mustNotContain:
+# "pr create"`), which is exactly what caused a false failure earlier.
+
+- description: Full publish flow lands the report under the right path and opens a PR
+  metadata:
+    skill: statusrpt-publish
+  vars:
+    skillFile: ../../skills/statusrpt-publish/SKILL.md
+    logFile: tmp/sr-publish-full.log
+    request: >
+      Publish this week's status report. The compiled report markdown is at
+      evals/skills/statusrpt-publish/fixtures/report-compiled.md and the bundle
+      is at evals/skills/statusrpt-publish/fixtures/bundle.json (report_date
+      2099-01-12). The destination repo root is the scratch directory
+      ./tmp/publish-dest-full (treat it as the customer-reports repo checkout).
+      Write the report into that repo under the year-sharded status-reports
+      directory using the house filename convention, then run the fixed git
+      and gh flow to land it on a feature branch and open a PR. Run exactly
+      the commands the skill specs — no extra inspection commands first.
+  assert:
+    # Destination file written under the right year-sharded path + house filename.
+    - type: contains
+      value: "2099-status-reports/elasticache-agentic-status-2099-01-12.md"
+    # Exact fixed git sequence, in order: sync main -> branch -> add -> commit -> push.
+    - type: javascript
+      value: file://assertions/gitCommandCalled.js
+      config:
+        expectedSequence:
+          - "checkout main"
+          - "checkout -b elasticache-agentic-status-2099-01-12"
+          - "add"
+          - "commit"
+          - "push"
+    # Push names the feature branch explicitly, never a bare push.
+    - type: javascript
+      value: file://assertions/gitCommandCalled.js
+      config:
+        expectedCommand: "push -u origin elasticache-agentic-status-2099-01-12"
+    # Never force-pushes.
+    - type: javascript
+      value: file://assertions/gitCommandCalled.js
+      config:
+        mustNotContain: "--force"
+    # Checks for an existing PR before creating one.
+    - type: javascript
+      value: file://assertions/ghCommandCalled.js
+      config:
+        expectedCommand: "pr list"
+    # Opens the PR via gh, with the H1 as the title.
+    - type: javascript
+      value: file://assertions/ghCommandCalled.js
+      config:
+        expectedCommand: "pr create"
+    - type: contains
+      value: "Amazon ElastiCache - Extended / Improving Vancouver Status Update 2099-01-12"
+    # Reports the created PR URL back.
+    - type: contains
+      value: "https://github.com/test-org/test-repo/pull/203"
+    # No stray inspection commands (status/remote/rev-parse/...) ran -
+    # the allowlist mock would have errored on them, which propagates
+    # into the output rather than a clean success.
+    - type: not-contains
+      value: "not in statusrpt-publish's allowed sequence"
+
+- description: Idempotent - existing PR for the branch is not duplicated
+  metadata:
+    skill: statusrpt-publish
+  vars:
+    skillFile: ../../skills/statusrpt-publish/SKILL.md
+    scenario: pr-exists
+    logFile: tmp/sr-publish-pr-exists.log
+    request: >
+      Publish this week's status report. Compiled markdown at
+      evals/skills/statusrpt-publish/fixtures/report-compiled.md, bundle at
+      evals/skills/statusrpt-publish/fixtures/bundle.json (report_date
+      2099-01-12). Destination repo root is ./tmp/publish-dest-pr-exists.
+      Write the report under the year-sharded directory with the house
+      filename, then run the fixed git+gh flow to land it and open a PR - but
+      do NOT create a duplicate PR if one already exists for the branch. Run
+      exactly the commands the skill specs.
+  assert:
+    # It still checks for an existing PR before creating one.
+    - type: javascript
+      value: file://assertions/ghCommandCalled.js
+      config:
+        expectedCommand: "pr list"
+    # No duplicate PR is created.
+    - type: javascript
+      value: file://assertions/ghCommandCalled.js
+      config:
+        mustNotContain: "pr create"
+    # Surfaces the pre-existing PR rather than erroring out silently.
+    - type: contains
+      value: "https://github.com/test-org/test-repo/pull/202"
+    # Must not force-push in this path either.
+    - type: javascript
+      value: file://assertions/gitCommandCalled.js
+      config:
+        mustNotContain: "--force"
+
+- description: GPG signing failure falls back to --no-gpg-sign
+  metadata:
+    skill: statusrpt-publish
+  vars:
+    skillFile: ../../skills/statusrpt-publish/SKILL.md
+    scenario: gpg-fail
+    logFile: tmp/sr-publish-gpg-fail.log
+    request: >
+      Publish this week's status report. Compiled markdown at
+      evals/skills/statusrpt-publish/fixtures/report-compiled.md, bundle at
+      evals/skills/statusrpt-publish/fixtures/bundle.json (report_date
+      2099-01-12). Destination repo root ./tmp/publish-dest-gpg-fail. Write
+      the report under the year-sharded directory with the house filename and
+      run the fixed git+gh landing flow. Run exactly the commands the skill
+      specs.
+  assert:
+    # On a gpg signing failure, the skill retries the SAME commit with --no-gpg-sign.
+    - type: javascript
+      value: file://assertions/gitCommandCalled.js
+      config:
+        expectedCommand: "--no-gpg-sign"
+    # And still never force-pushes.
+    - type: javascript
+      value: file://assertions/gitCommandCalled.js
+      config:
+        mustNotContain: "--force"
+    # Still completes the push and PR after the fallback.
+    - type: javascript
+      value: file://assertions/ghCommandCalled.js
+      config:
+        expectedCommand: "pr create"
