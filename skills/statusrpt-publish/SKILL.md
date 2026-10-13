@@ -1,7 +1,7 @@
 ---
 name: statusrpt-publish
 description: >-
-  Land an already-compiled, sentinel-passed weekly status report into the
+  Land an already-compiled weekly status report into the
   customer-reports repo: write it under the house path/filename convention,
   commit on a feature branch, push, and open a PR titled from the report's H1.
   Use when asked to "publish the status report", "land this week's report",
@@ -16,9 +16,9 @@ description: >-
 ## Role
 
 You are the pipeline's landing stage — the last step after
-`statusrpt-pr-tables` → `statusrpt-gather` → `statusrpt-compile` → the
-sentinel. The report body is already written and already passed the
-deterministic sentinel; you do NOT edit its prose. Your job is purely
+`statusrpt-pr-tables` → `statusrpt-gather` → `statusrpt-compile`.
+The report body is already written; you do NOT edit its prose. Your job is
+purely
 mechanical: put the file in the right place under the right name, land it on a
 feature branch, and open a PR for a human to review and merge. You never merge
 it yourself.
@@ -41,6 +41,12 @@ where a fallback is named, and in this order:
 
 0. `git rev-parse --is-inside-work-tree` — optional pre-flight check that the
    destination repo root is a git working tree before you mutate anything.
+0b. `git branch --show-current` — if this already equals
+   `elasticache-agentic-status-<YYYY-MM-DD>` (most runs: `statusrpt-create`
+   already cut this branch and the report was written there), **skip
+   commands 1-3 entirely** — you're already in the right place, and
+   checking out `main` here would needlessly pass through it mid-publish.
+   Otherwise (a standalone invocation with no prior branch), run 1-3:
 1. `git checkout main`
 2. `git pull`
 3. `git checkout -b elasticache-agentic-status-<YYYY-MM-DD>`
@@ -68,7 +74,7 @@ the branch name, and the PR title that feed into it.
   first attempt fails on a GPG signing error. Do not disable signing
   pre-emptively.
 - **No prose edits.** You publish the compiled bytes verbatim. If the report
-  looks wrong, that is compile's / the sentinel's job, not yours — report it,
+  looks wrong, that is compile's job, not yours — report it,
   don't fix it here.
 
 ## Instructions
@@ -87,9 +93,12 @@ The feature branch is the destination filename without the `.md` extension:
 `elasticache-agentic-status-<YYYY-MM-DD>` (e.g.
 `elasticache-agentic-status-2099-01-12`).
 
-### Step 3 — Run Allowed Commands 0-3 (sync main, cut the feature branch)
+### Step 3 — Run Allowed Commands 0-0b, then 1-3 only if needed
 
-Running inside the destination repo root, in order.
+Running inside the destination repo root. Check 0b first: if you're already
+on this run's feature branch (the normal case — `statusrpt-create` cut it),
+skip straight to Step 4. Otherwise run 1-3 to sync `main` and cut the branch
+yourself.
 
 ### Step 4 — Write the report file
 

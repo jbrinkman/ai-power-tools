@@ -2,17 +2,20 @@
 name: statusrpt-create
 description: >-
   Create (but do NOT publish) the weekly elasticache-agentic status report:
-  reconcile the database, assemble the bundle, write the narrative, and run
-  the deterministic sentinel gate — then STOP and hand the draft to the human
+  reconcile the database, assemble the bundle, and write the narrative —
+  then STOP and hand the draft to the human
   for review. This is the FIRST of two deliberately separate workflows; it
   never pushes, commits, or opens a PR, and it has no path to publishing. Use
   when asked to "create this week's status report", "draft the weekly report",
   "build the status report for review", or "run the report-creation
-  pipeline", given the source files (database path, GitHub PR data, Confluence
-  tracker, Taskei sprint, Chorus narratives folder, prior report) and the
-  report date. Publishing is a SEPARATE skill (statusrpt-publish-report) the
-  human invokes AFTER they have fully reviewed this draft — the two are not
-  linked and must not be automated into one run.
+  pipeline". Runs end-to-end with zero prompts: every input (report date,
+  database, Confluence tracker page, Taskei room/sprint, Chorus narratives
+  folder, prior report) has a baked-in default, and the user may override any
+  of them in their request — but a bare invocation never stops to ask.
+  Publishing is a
+  SEPARATE skill (statusrpt-publish-report) the human invokes AFTER they have
+  fully reviewed this draft — the two are not linked and must not be
+  automated into one run.
 ---
 
 # Create the Weekly Status Report (for review, not for publishing)
@@ -20,7 +23,8 @@ description: >-
 ## Role
 
 You are the report-creation workflow — the first of two deliberately separate
-workflows. You run the four creation stages in order and produce a reviewed-
+workflows. You verify you're in the right workspace, confirm the repo is
+ready, then run the three creation stages in order, and produce a reviewed-
 ready draft on disk. **You stop there.** You do NOT publish, commit, push, or
 open a PR, and you do not invoke, suggest invoking, or "continue into" the
 publish workflow. The hard stop after this workflow is a human-in-the-loop
@@ -29,8 +33,9 @@ happens, and that review is not something this run can satisfy, shortcut, or
 hand off automatically.
 
 ```
-statusrpt-pr-tables → statusrpt-gather → statusrpt-compile → sentinel → [STOP — human review]
-   (reconcile DB)      (assemble bundle)   (write narrative)  (gate)
+[workspace check] → [pre-flight + cut branch] → statusrpt-pr-tables → statusrpt-gather → statusrpt-compile → [STOP — human review]
+  (right repo/folder)    (off main, onto this        (reconcile DB)      (assemble bundle)   (write narrative)
+                          run's feature branch)
 ```
 
 Publishing is the SEPARATE `statusrpt-publish-report` skill, which the human
@@ -38,73 +43,179 @@ invokes themselves after review. This skill does not call it, and must not.
 
 ## Context — Inputs
 
-Collect these from the request (ask only for what's missing):
+Every input below has a baked-in default, so a bare invocation
+("create this week's status report") runs end-to-end **without stopping to
+ask the user anything.** The user may override any default by naming a
+different value in their request; absent an override, use the default and
+proceed. Do NOT prompt, confirm, or pause for any of these — only surface a
+value back to the user if resolving a default genuinely fails (e.g. the
+database file does not exist, or the Confluence page returns an error).
 
-- The report **date** (`YYYY-MM-DD`) for this run.
-- The **database path** (elasticache-agentic-status SQLite DB).
-- pr-tables' sources: live GitHub PR data (`gh-api-responses.json` or
-  equivalent) and the Confluence tracker.
-- gather's remaining sources: the current Taskei sprint, the Chorus
-  narratives folder listing, and the **prior week's report** path.
+- **Report date** — defaults to the upcoming Monday (the report always
+  covers a week ending the following Monday) unless the request names a
+  different date. Compute it; don't ask.
+- **The database** — defaults to the elasticache-agentic-status DB this
+  project already uses (`/Users/jbrinkmy/Projects/elasticache-agentic-status/
+  elasticache-agentic.db`), unless the request names a different path.
+  Which GitHub repos/PRs to check comes FROM the database itself (every PR
+  already tracked in `pull_requests`) — you don't need the user to enumerate
+  repos; you fetch live GitHub state yourself for the PRs already on file
+  plus whatever the Confluence tracker below surfaces as new (see Step 3).
+- **The Confluence PR tracker page** — defaults to page **`4063395841`**
+  (the elasticache-agentic PR Status Tracker), read via `atlassian-cli
+  confluence page get`. Don't ask; only override if the request names a
+  different page.
+- **The Taskei room and sprint** — the room defaults to **"Improving
+  Elasticache Agentic"** (`284e66bb-e41a-4584-8d6c-a0c05f221818`); don't ask
+  for it. Within that room, default to the **latest/current sprint** —
+  resolve it yourself (the sprint whose date range contains the report date,
+  or the most recent) rather than asking. Only override if the request names
+  a different room/sprint.
+- **The Chorus narratives folder** — defaults to `fld_vAeTIroVanoh` (the
+  elasticache-agentic Narratives folder); don't ask. Read the narrative docs
+  directly from it via the Chorus tools. Only override if the request names a
+  different folder.
+- **The prior week's report** — defaults to the most recent file under this
+  project's `<year>-status-reports/` directory; don't ask. Only override if
+  the request names a specific one (if none exists yet, proceed without a
+  prior report rather than asking).
 
 You do NOT need (and must not ask for) the destination repo root — that
 belongs to the publish workflow, not this one.
 
 ## Instructions
 
-### Step 1 — Run statusrpt-pr-tables
+### Step 1 — Locate the project folder and verify it
 
-Invoke the `statusrpt-pr-tables` skill with the database path and its two
-source files. Do not proceed until it reports completion — gather's
-precondition is an ALREADY-reconciled database. If pr-tables reports an
+This skill may be invoked from anywhere inside the `customer-reports`
+checkout — the repo root, a sibling customer's folder, or already inside
+`amazon-elasticache-agentic/`. Locate the right folder yourself rather than
+assuming the current directory is it:
+
+1. `git rev-parse --show-toplevel` — the repo root. Then `git remote
+   get-url origin` — must resolve to the `Bit-Quill/customer-reports` repo
+   (any URL form). If it doesn't, stop: this working tree is the wrong repo
+   entirely, and no subfolder search inside it will fix that.
+2. The project folder is `<repo-root>/amazon-elasticache-agentic` —
+   construct this absolute path from the repo root found in check 1; do not
+   rely on the current directory already being it. Confirm the directory
+   exists. (This repo holds ~20 other customer folders side by side,
+   including the similarly-named `amazon-elasticache` — that is a different
+   folder and never a substitute.)
+3. Confirm **at least one** `<year>-status-reports/` directory exists
+   directly under that project folder (e.g. `2026-status-reports/`) — a
+   general sanity check that this is really the report project, not a check
+   for this run's specific year (Step 6 handles that, including creating a
+   new year's folder on its first use). If none exist at all, stop — this
+   does not look like the report folder even if checks 1-2 passed.
+
+If all three confirm, treat `<repo-root>/amazon-elasticache-agentic` as this
+run's project root for the rest of the skill, regardless of where you were
+invoked from — every path from here (the DB default, `<year>-status-
+reports/`, the report filename, and every git command in Step 2) is
+relative to THAT folder, not the original working directory. `cd` there (or
+otherwise anchor all subsequent commands to it) before continuing. If any
+check fails, stop and tell the user exactly which check failed and what you
+found instead — do not guess a corrected path and do not fall back to a
+different directory.
+
+### Step 2 — Pre-flight: confirm the repo is ready, then cut this run's branch
+
+Before touching the database, confirm this project's git state is clean, the
+prior week's report has actually landed, and get off `main` before any
+report content is created — so nothing from this run can land on `main` by
+accident:
+
+1. `gh auth status` — if it fails, stop and tell the user to run
+   `gh auth login`, then re-invoke this skill.
+2. `git status --porcelain` — if it reports anything, stop and tell the user
+   to commit, stash, or discard those changes before starting a new report.
+3. `git checkout main` then `git pull` — get this checkout onto `main` and
+   synced with `origin/main`.
+4. `gh pr list --state open --author @me` — if this lists any open PR (the
+   prior week's report, almost always), stop and tell the user that report's
+   PR must be merged or closed first; name the PR(s) found. Do not proceed
+   until this returns empty.
+5. `git checkout -b elasticache-agentic-status-<YYYY-MM-DD>` (this run's
+   report date) — fallback if that branch already exists from a prior,
+   interrupted run of this same report: `git checkout elasticache-agentic-
+   status-<YYYY-MM-DD>`. From here through Step 6, every step of this skill
+   runs on this branch, never on `main`.
+
+Only once all five pass do you continue to Step 3.
+
+### Step 3 — Fetch live PR state, then run statusrpt-pr-tables
+
+`statusrpt-pr-tables` itself reads a PR-state file shaped
+`gh-api-responses.json` (keyed `"<owner>/<repo>#<n>"`: `state`, `merged`,
+`merged_at`, `closed_at`, optional `releases[]`, `closed_comments[]`,
+`successor`) rather than calling `gh` itself — fetching that data live is
+this orchestrator's job, not something to change in pr-tables (which is
+already certified against that exact file contract).
+
+1. Query every PR currently tracked in the database's `pull_requests` table
+   (`owner`, `repo`, `number`) plus any new ones the Confluence tracker page
+   names, via `gh api`/`gh pr view`, to build that same JSON shape.
+2. Write it to a scratch path (e.g. alongside the draft output).
+3. Invoke `statusrpt-pr-tables` with the database path, that live-fetched
+   file, and the Confluence tracker page.
+
+Do not proceed until it reports completion — gather's precondition is an
+ALREADY-reconciled database. If pr-tables reports an
 ambiguous classification it couldn't resolve, stop and surface that to the
 user before continuing; don't guess on its behalf.
 
-### Step 2 — Run statusrpt-gather
+### Step 4 — Run statusrpt-gather
 
 Invoke `statusrpt-gather` with the SAME (now-reconciled) database path, the
-Taskei sprint, the Chorus narratives folder, and the prior report path, plus
-this run's report date. Its only output is `bundle.json` — keep it; the
+Taskei sprint/room, the Chorus narratives folder, and the prior report path,
+plus this run's report date. Its only output is `bundle.json` — keep it; the
 publish workflow will need it later for `report_date`, so write it to a
-known path alongside the draft (see Step 5).
+known path alongside the draft (see Step 6).
 
-### Step 3 — Run statusrpt-compile
+### Step 5 — Run statusrpt-compile
 
-Invoke `statusrpt-compile` with the bundle from Step 2 and the prior report
+Invoke `statusrpt-compile` with the bundle from Step 4 and the prior report
 path (for continuity). Its only output is the compiled report markdown.
 
-### Step 4 — Run the sentinel gate
+### Step 6 — Write the report to disk and STOP
 
-Run the deterministic sentinel against compile's output (plain code, invoke
-it directly — not an agent skill):
+Write the compiled report to this project's `<year>-status-reports/`
+directory, where `<year>` is derived from **this run's report date**
+(the date resolved in Context — Inputs, not today's date), using the
+standard report filename:
 
-```js
-const sentinel = require('<repo>/sentinels/statusrpt-sentinel/sentinel.js');
-const { ok, findings } = sentinel.runAll(compiledReportText, { knownNames: [] });
+```
+<project>/<YYYY>-status-reports/elasticache-agentic-status-<YYYY-MM-DD>.md
 ```
 
-- `ok === false` (an error-severity finding): the draft has a mechanical
-  defect. Report every finding; do NOT present the draft as review-ready and
-  do NOT patch the text yourself (that's a compile fix). The workflow ends
-  here, failed.
-- `ok === true` with `warning` findings (e.g. a dangling strikethrough):
-  continue, but carry the warnings into your hand-off so the human sees them.
+e.g. for report date 2026-10-12: `2026-status-reports/elasticache-agentic-
+status-2026-10-12.md`. For report date 2027-01-05:
+`2027-status-reports/elasticache-agentic-status-2027-01-05.md` — a
+different year than the folders you confirmed exist in Step 1, which is
+expected at a year boundary, not an error.
 
-### Step 5 — Write the draft to disk and STOP
+If `<YYYY>-status-reports/` for this run's year does not exist yet, create
+it — the first report of a new year always starts a new folder. This is the
+one point where a missing year-folder is correct and expected, as distinct
+from Step 1's check that at least one such folder exists at all.
 
-Write the compiled report and its bundle to a known, stable location the
-human (and later the publish skill) can find — e.g. a `drafts/` directory
-the request names or, by default, next to the prior report as
-`<report-date>-DRAFT.md` plus `<report-date>-bundle.json`. State both paths
-explicitly in your hand-off.
+This filename is the same name the report keeps through publishing; the
+publish workflow commits and PRs this exact file — on the SAME feature
+branch (`elasticache-agentic-status-<YYYY-MM-DD>`) you cut in Step 2 and
+have remained on this entire run. The report is never written while `main`
+is checked out.
+
+Write the bundle as a sidecar next to it:
+`elasticache-agentic-status-<YYYY-MM-DD>-bundle.json` (the publish workflow
+reads it for `report_date`). State both paths explicitly in your hand-off.
 
 Then **stop and hand off to the human.** Your final message:
-- states the draft path and the bundle path,
-- summarizes what pr-tables changed (counts by action) and whether the
-  sentinel passed clean or with warnings (list any warnings),
-- tells the user to review the draft fully, and
+- states the report path, the bundle path, and the branch name,
+- summarizes what pr-tables changed (counts by action),
+- tells the user to review the report fully, and
 - tells them that when they are satisfied, publishing is a SEPARATE step they
-  invoke themselves via `statusrpt-publish-report` with the draft and bundle
+  invoke themselves via `statusrpt-publish-report` with the report and bundle
   paths — you will not and cannot do it as part of this run.
 
 Do not offer to publish, do not ask "shall I publish now", and do not treat a
@@ -113,7 +224,7 @@ workflow the human starts deliberately.
 
 ## Output
 
-A hand-off summary only: the draft path, the bundle path, pr-tables change
-counts, sentinel result (+ any warnings), and the explicit instruction that
+A hand-off summary only: the report path, the bundle path, the branch name,
+pr-tables change counts, and the explicit instruction that
 publishing is the separate `statusrpt-publish-report` workflow to run after
 review. Never a PR, never a push, never a "continuing to publish".
