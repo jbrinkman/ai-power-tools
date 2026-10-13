@@ -69,18 +69,26 @@
     # --- Criterion 2: badge vocabulary is closed and well-formed (deterministic) ---
     # TWO separate closed vocabularies exist in house style: status badges, and the
     # Risk-severity badges (red=High/orange=Medium/yellow=Low). A badge must match
-    # one of the two, with its class consistent with the word.
+    # one of the two, with its class consistent with the word. A THIRD
+    # vocabulary covers Infrastructure items specifically: their badge is the
+    # bundle's own status_label (e.g. "Merged", "Awaiting Merge") rendered
+    # as-is per real house style (confirmed across every real report in
+    # 2026-status-reports/) — these are not remapped into the general list.
     - type: javascript
       value: |
         const statusWords = {
           green: ['Done', 'On Track', 'In Progress'],
-          gray: ['Not Started'],
+          gray: ['Not Started', 'Dropped'],
           red: ['Blocked', 'Off Track'],
           yellow: ['At Risk'],
           paused: ['Paused'],
           pending: ['Pending Updates'],
         };
         const riskWords = { red: ['High'], orange: ['Medium'], yellow: ['Low'] };
+        // Real house-style infrastructure status labels, always green per the
+        // project's own real reports (Merged, Awaiting Merge, and related PR/
+        // issue lifecycle states).
+        const infraWords = { green: ['Merged', 'Awaiting Merge', 'Submitted', 'In Review'] };
         const spanRe = /<span class="(\w+)">([^<]+)<\/span>/g;
         let m, bad = [];
         while ((m = spanRe.exec(output)) !== null) {
@@ -88,12 +96,13 @@
           const word = wordRaw.trim();
           const okStatus = statusWords[cls] && statusWords[cls].includes(word);
           const okRisk = riskWords[cls] && riskWords[cls].includes(word);
-          if (!okStatus && !okRisk) bad.push(`class="${cls}">${word}`);
+          const okInfra = infraWords[cls] && infraWords[cls].includes(word);
+          if (!okStatus && !okRisk && !okInfra) bad.push(`class="${cls}">${word}`);
         }
         if (bad.length > 0) {
           return { pass: false, score: 0, reason: `Invalid badge(s): ${bad.join(', ')}` };
         }
-        return { pass: true, score: 1, reason: 'All badges use an approved vocabulary (status or risk-severity) with a matching class' };
+        return { pass: true, score: 1, reason: 'All badges use an approved vocabulary (status, risk-severity, or infrastructure) with a matching class' };
     # No plain-text status words standing in for a badge.
     - type: javascript
       value: |
@@ -103,19 +112,21 @@
           ? { pass: false, score: 0, reason: `Found plain-text status standing in for a badge: ${hit}` }
           : { pass: true, score: 1, reason: 'No plain-text status words found' };
 
-    # --- Criterion 3: dated items use On Track/Done, never In Progress (deterministic) ---
-    # The Sample Framework Adapter is complete with a concrete release version; every
-    # badge immediately attached to ITS OWN bullet/line (not a neighboring item's) must
-    # not be "In Progress". Scope tightly to one line at a time to avoid false positives
-    # from a different item's badge sitting nearby.
+    # --- Criterion 3: a DATED/released item uses Done/On Track, never In Progress (deterministic) ---
+    # The house-style rule is about an item that HAS A DATE (release version, ETA,
+    # merge date). The Sample Framework Adapter shipped as a completed project with
+    # release tag v2.1.0, so the line stating ITS completion (the one citing v2.1.0)
+    # must not be badged "In Progress". Scope to the line carrying the v2.1.0
+    # evidence specifically — NOT every line that merely name-drops the Adapter (a
+    # follow-up sprint task that references it can legitimately be in-flight).
     - type: javascript
       value: |
-        const lines = output.split('\n').filter(l => l.includes('Sample Framework Adapter'));
-        if (lines.length === 0) return { pass: false, score: 0, reason: 'Sample Framework Adapter not mentioned at all' };
+        const lines = output.split('\n').filter(l => l.includes('v2.1.0'));
+        if (lines.length === 0) return { pass: false, score: 0, reason: 'Adapter completion evidence (v2.1.0) not cited anywhere' };
         const bad = lines.filter(l => /<span class="\w+">In Progress<\/span>/.test(l));
         return bad.length > 0
-          ? { pass: false, score: 0, reason: `Sample Framework Adapter (dated, released v2.1.0) badged In Progress on line: "${bad[0].trim()}"` }
-          : { pass: true, score: 1, reason: 'Sample Framework Adapter never badged In Progress on its own line' };
+          ? { pass: false, score: 0, reason: `A dated/released line (cites v2.1.0) is badged In Progress: "${bad[0].trim().slice(0,120)}"` }
+          : { pass: true, score: 1, reason: 'The dated v2.1.0 completion line is not badged In Progress' };
 
     # --- Criterion 4: Not-Started sprint task excluded entirely (deterministic) ---
     - type: not-contains
@@ -128,10 +139,14 @@
       value: "Sample Session Store"
     - type: javascript
       value: |
-        const pass = /not aligned with project direction/i.test(output);
+        // Tolerate minor meaning-preserving phrasing (an added article/possessive,
+        // e.g. "the project's direction" vs "project direction") while still
+        // requiring the real substance — "not aligned" + "direction" — to survive,
+        // catching an actual paraphrase-away (e.g. "no longer needed").
+        const pass = /not\s+aligned\s+with\s+(the\s+)?project'?s?\s+direction/i.test(output);
         return pass
           ? { pass: true, score: 1, reason: 'Dropped reason text present' }
-          : { pass: false, score: 0, reason: 'Expected substance "not aligned with project direction" not found anywhere in the output' };
+          : { pass: false, score: 0, reason: 'Expected substance "not aligned with project(\'s) direction" not found anywhere in the output' };
     - type: llm-rubric
       value: >
         The stated reason for dropping "Sample Session Store" is faithful to
@@ -162,21 +177,23 @@
         only (e.g. "X of Y developers") and contains NO specific individual's
         name. FAIL if any person's name appears in that section.
 
-    # --- Criterion 8: no leftover meta-commentary or placeholders (deterministic) ---
+    # --- Criterion 8: no leftover placeholders (deterministic) + no meta-
+    # commentary before the report starts (rubric — "is this sentence about
+    # the task, not report content" needs reading comprehension, not a list
+    # of forbidden phrases; chasing specific wordings here is a losing game,
+    # since there's always another way to phrase the same kind of narration) ---
     - type: not-contains
       value: "TBD"
     - type: not-contains
       value: "Lorem ipsum"
     - type: not-contains
       value: "<INSERT"
-    - type: javascript
-      value: |
-        // The compiled report must open with real report content (an H1 title or a
-        // greeting line) — not a sentence ABOUT the task itself (e.g. narrating a
-        // file-path decision).
-        const firstLine = output.trim().split('\n')[0];
-        const metaPatterns = [/\bI('ll| will)\b/i, /\brelative to\b/i, /\bthe request\b/i, /\bI('m| am) going to\b/i];
-        const isMeta = metaPatterns.some(p => p.test(firstLine));
-        return isMeta
-          ? { pass: false, score: 0, reason: `Output opens with meta-commentary instead of report content: "${firstLine}"` }
-          : { pass: true, score: 1, reason: 'Output opens with report content, no meta-commentary' };
+    - type: llm-rubric
+      value: >
+        The output's very first line is the report's own H1 title (starting
+        with a single `#`), and nothing before or glued onto it describes the
+        writer's own process — no narration of file paths, what it's about to
+        do, how it resolved an input, or any other sentence ABOUT the task
+        rather than being report content itself. FAIL if any such
+        process-narration sentence appears anywhere before or within the
+        opening heading, regardless of how it's phrased.

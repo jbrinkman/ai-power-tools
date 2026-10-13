@@ -85,13 +85,98 @@ complex; deterministic evals are practically free, why limit them?"
   paragraph, keeping the single merged instruction. Re-ran: no regression,
   still 100%.
 
+## Iteration 5 — Flakiness audit via `promptfoo --repeat` (user-directed)
+
+Running `task eval:sr-all` five times surfaced compile failing 2/5 — the
+suite had never been run more than once per edit, so this was the first
+evidence of real run-to-run model non-determinism. User pointed out
+`promptfoo eval --repeat N` runs each test case N times in ONE invocation
+instead of manual shell loops — switched to that for every validation pass
+below.
+
+- **Finding 1 (real skill gap): meta-commentary before the H1.** Some runs
+  opened with a sentence narrating file-path resolution
+  (`"The fixtures are under evals/skills, relative to the cwd.## Summary"`),
+  glued onto the first heading. Root cause: the skill never actually
+  instructed compile to EMIT an H1 at all — Step 2 jumped straight to
+  `## Summary`, so there was no anchor forcing "report content starts here."
+  **Fixed** by adding an explicit H1-first instruction (Step 2 now opens with
+  the literal `# Amazon ElastiCache - ...` line using `report_date`) and
+  tightening the Role section.
+- **Finding 2 (test over-match, not a skill bug): Criterion 3 flagged a
+  legitimate in-flight sprint task.** The original check forbade `In
+  Progress` on ANY line mentioning "Sample Framework Adapter" by name — but
+  a follow-up sprint task line referencing the (already-shipped) Adapter can
+  legitimately still be in-flight. Re-scoped the check to the line actually
+  citing the `v2.1.0` release evidence, not every line name-dropping the
+  project.
+- **Finding 3 (real skill + test gap): `Dropped` wasn't in the badge
+  vocabulary at all.** Grepped every real report in `2026-status-reports/`
+  and confirmed `<span class="gray">Dropped</span>` is standing, consistently
+  used house style — the vocabulary list in both `SKILL.md` and the test's
+  `statusWords` map had simply omitted it. Added it to both, plus an
+  explicit instruction in Step 5 to badge dropped projects `gray`.
+- **Finding 4 (test over-strictness): dropped-reason regex too brittle.** A
+  run phrased the reason "not aligned with **the project's** direction"
+  (added article + possessive) — faithful to the bundle's `"not aligned with
+  project direction"`, but an exact-phrase regex rejected it. Loosened the
+  regex to tolerate that trivial variation while still requiring the real
+  substance.
+- **Finding 5 (real skill + test gap): `Merged`/`Awaiting Merge` aren't
+  general status words but ARE real house style.** Grepped the whole
+  `2026-status-reports/` history and confirmed Infrastructure items render
+  their `status_label` as-is (`Merged`, `Awaiting Merge`, etc., always green)
+  — a THIRD vocabulary distinct from both the general status words and the
+  risk-severity words. The skill's Step 6 said to "map" these into the
+  general vocabulary, which is backwards; fixed Step 6 and the House Style
+  bullet to say these render as-is, and added the infra vocabulary to the
+  test's badge checker.
+- **Finding 6 (real skill gap): a sprint task contradicted itself.** One run
+  wrote `<span class="green">In Progress</span> Complete the closeout of the
+  Sample Framework Adapter, which is released as v2.1.0...` — badging a task
+  In Progress while its own prose cites the release. The dated-item rule
+  (`On Track`/`Done`, not `In Progress`, when dated) wasn't explicitly tied
+  to a sprint task's OWN prose, only to the project-level entries. Added a
+  clarifying paragraph to Step 3.
+- **Finding 7 (real skill gap): an invented CSS class.** One run emitted
+  `<span class="done">Done</span>` instead of `<span class="green">Done</span>`.
+  Grepped the real reports and confirmed `done` never appears as a class —
+  only the 6 named ones. Made the House Style bullet state the exact 6
+  lowercase class names explicitly, with a worked example, rather than only
+  describing the word→class mapping in prose.
+- **Finding 8 (test architecture, user-directed): meta-commentary needed
+  `llm-rubric`, not more regex.** After Finding 1's fix reduced but did not
+  eliminate the meta-commentary slip (it recurred once more, with a
+  different wording the deterministic phrase-list hadn't anticipated), the
+  user correctly stopped the chase: "we should not try to keep chasing a
+  specific sentence in the output — this is a case where we are using a
+  deterministic eval when we should be using an LLM rubric." Converted
+  Criterion 8's meta-commentary check from a growing deny-list of phrases to
+  an `llm-rubric` asking the real question ("is this sentence about the
+  task, not report content") — the same category as the two criteria already
+  on `llm-rubric` (dropped-reason fidelity, Staffing names). Kept the
+  genuinely mechanical placeholder checks (`TBD`, `Lorem ipsum`, `<INSERT`)
+  deterministic.
+- Validated the full set of fixes with `--repeat 10` twice in a row:
+  **20/20 (100%)** combined, after the architecture change — up from the
+  2/5 and intermittent single-digit failures seen before this iteration.
+
 ## Status
 
-GREEN (deterministic-first suite, 8 criteria covered mostly by regex/
-`contains`/custom `javascript` assertions, 2 reserved for `llm-rubric`) on
-Kiro / claude-sonnet-5.5. Meets Stage 3 §2 (≥3 distinct criteria — 8 here)
-and §3 (documented Red/Green/Refactor, including a real skill defect AND
-three real test bugs caught by switching to deterministic checks per user
-steering, each independently verified against the raw output text). Devin
-cross-provider run PENDING on an Improving laptop via
-`task eval:statusrpt-compile CONFIG=promptfooconfig.devin.yaml`.
+GREEN. 8 criteria: 6 fully deterministic (section order, two-plus-one badge
+vocabularies with exact CSS classes, dated-item rule scoped to real evidence
+lines, Not-Started exclusion, Infrastructure-as-bullets), 3 on `llm-rubric`
+(dropped-reason paraphrase fidelity, Staffing-no-names, meta-commentary
+judgment) — each `llm-rubric` reserved for a question that genuinely needs
+reading comprehension rather than pattern-matching. Validated with
+`promptfoo eval --repeat 10` (not manual shell loops) at 20/20 across the
+latest two batches. Meets Stage 3 §2/§3. Devin cross-provider run PENDING on
+an Improving laptop via `task eval:sr-compile CONFIG=promptfooconfig.devin.yaml`.
+
+The recurring lesson of this iteration: several "the model is wrong" findings
+turned out to be "the test's vocabulary is incomplete relative to the real,
+already-established house style" (`Dropped`, `Merged`, `Awaiting Merge`) —
+each verified against the actual `2026-status-reports/*.md` history before
+touching the skill or test, not assumed. And the meta-commentary saga is the
+general case of "don't fight non-deterministic phrasing with a deny-list";
+`--repeat` is the right tool to even notice this kind of flakiness exists.
