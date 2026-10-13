@@ -200,6 +200,98 @@ force-pushes, and won't create a duplicate PR.
 **Triggers:** "finalize report", "submit status report", "push status report",
 "create PR for report".
 
+### Weekly Status Reports v2 (statusrpt-*, ElastiCache Agentic)
+
+The successor pipeline to the section above — database-backed reconciliation
+with a full audit trail, a normalized bundle contract between stages, and a
+deterministic structural gate before anything is pushed. Each stage is a
+separate, independently-certified skill (see `evals/skills/statusrpt-*/` for
+each one's EDD eval suite).
+
+**This is deliberately TWO separate workflows with a hard human-in-the-loop
+boundary between them — they are not linked and must not be automated into a
+single run:**
+
+```
+Workflow 1 — statusrpt-create:
+  statusrpt-pr-tables → statusrpt-gather → statusrpt-compile → sentinel → [STOP, write draft]
+
+          ↓  (human fully reviews the draft — a real stop, not an in-run pause)
+
+Workflow 2 — statusrpt-publish-report (human invokes it, after review):
+  → statusrpt-publish  (land the reviewed draft on a branch + PR)
+```
+
+The split is structural, not just a prompt-level pause: `statusrpt-create`
+has no path to publishing (it writes a draft to disk and stops), and
+`statusrpt-publish-report` only reads a reviewed draft from disk and never
+regenerates it. Invoke the individual stage skills directly only for a
+standalone/partial run (e.g. re-compiling after a hand-edited bundle).
+
+#### statusrpt-create
+
+Workflow 1. Runs reconcile → gather → compile → sentinel, writes the draft
+report + its bundle to disk, and STOPS — handing the draft to the human for
+review. Never pushes, commits, opens a PR, or invokes the publish workflow.
+
+**Triggers:** "create this week's status report", "draft the weekly report",
+"build the status report for review", "run the report-creation pipeline".
+
+#### statusrpt-publish-report
+
+Workflow 2, invoked by the human AFTER they've reviewed the draft. Takes the
+reviewed draft + bundle paths and publishes exactly those bytes via
+`statusrpt-publish`. Refuses to run (and points back to `statusrpt-create`)
+if handed no reviewed draft; never regenerates or re-compiles the report.
+
+**Triggers:** "publish the reviewed report", "I've reviewed it, publish it",
+"land the status report", "open the report PR".
+
+#### statusrpt-pr-tables
+
+Reconciles the status database against live GitHub and Confluence state:
+moves projects between buckets, repoints superseded PR links, classifies
+dropped reasons, confirms completion evidence, maintains the Infrastructure
+item lifecycle, and writes a reversible audit trail.
+
+**Triggers:** "reconcile the PR tables", "update the project database",
+"run pr-tables reconciliation", "sync the status database".
+
+#### statusrpt-gather
+
+Assembles one normalized `bundle.json` from the already-reconciled database
+plus the current Taskei sprint, the Chorus narratives folder, and the prior
+report — faithfully, with no house-style filtering (that's compile's job).
+
+**Triggers:** "gather the status bundle", "assemble the report bundle",
+"collect this week's status inputs".
+
+#### statusrpt-compile
+
+Writes the customer-facing narrative report from `bundle.json`, applying the
+house style (closed badge vocabulary, section order, exclusion rules).
+
+**Triggers:** "compile the status report", "write this week's report",
+"draft the weekly report".
+
+#### statusrpt-sentinel
+
+Not an agent skill — plain, zero-dependency Node code
+(`sentinels/statusrpt-sentinel/`) that structurally gates compile's output
+before it reaches a human or publish: section order, badge vocabulary,
+Infrastructure-as-bullets, no leftover placeholders/meta-commentary. See
+its own `README.md` for the check list and usage.
+
+#### statusrpt-publish
+
+Lands an already-compiled, sentinel-passed report into the destination repo:
+writes it under the house path/filename convention, commits on a feature
+branch, pushes, and opens a PR titled from the report's H1. Idempotent on an
+existing PR; never force-pushes; merging stays with a human.
+
+**Triggers:** "publish the status report", "land this week's report",
+"submit/finalize the status report", "open the report PR".
+
 ## Project Structure
 
 ```
