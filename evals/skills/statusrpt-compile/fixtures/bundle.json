@@ -1,0 +1,60 @@
+{
+  "_comment": "SAMPLE / SYNTHETIC bundle.json, shaped like statusrpt-gather's real output. All fabricated.",
+  "report_date": "2099-01-12",
+  "prior_report_path": "fixtures/report-prev.md",
+  "changes_this_week": [
+    { "entity": "Sample Framework Adapter", "action": "moved_to_completed",
+      "detail": "Sample Framework Adapter merged and released in v2.1.0." },
+    { "entity": "Sample Session Store", "action": "moved_to_dropped",
+      "detail": "Sample Session Store rejected by maintainers." },
+    { "entity": "sample_user dual-password support", "action": "relabeled",
+      "detail": "tf-provider PR 121 merged; relabeled Merged." }
+  ],
+  "projects": {
+    "completed": [
+      { "name": "Sample Framework Adapter", "is_new": 1,
+        "completion_evidence_kind": "release-tag",
+        "completed_ref": "v2.1.0",
+        "completed_url": "https://github.com/sample-org/sample-framework/releases/tag/v2.1.0",
+        "prs": [{ "number": 30, "url": "https://github.com/sample-org/sample-framework/pull/30", "role": null }] }
+    ],
+    "merged": [],
+    "submitted": [
+      { "name": "Sample Multi-Part Feature", "is_new": 0,
+        "prs": [{ "number": 10, "url": "https://github.com/sample-org/multi-part/pull/10", "role": null }] }
+    ],
+    "dropped": [
+      { "name": "Sample Session Store", "is_new": 1,
+        "dropped_reason": "Maintainers closed it as not aligned with project direction." }
+    ]
+  },
+  "infrastructure": [
+    { "issue_number": 120, "description": "sample_user dual-password support",
+      "pr_number": 121, "pr_url": "https://github.com/sample-org/tf-provider/pull/121",
+      "status_label": "Merged", "status_class": "green", "is_new": 1 },
+    { "issue_number": 100, "description": "sample_cache_param_group name_prefix",
+      "pr_number": 101, "pr_url": "https://github.com/sample-org/tf-provider/pull/101",
+      "status_label": "Awaiting Merge", "status_class": "green", "is_new": 0 }
+  ],
+  "sprint": {
+    "name": "Sample Sprint 99",
+    "tasks": [
+      { "id": "SAMP-1", "name": "Ship Sample Framework Adapter", "section": "Framework Integrations",
+        "workflow_action": "In Review", "assignee": "dana",
+        "pr": "https://github.com/sample-org/sample-framework/pull/30" },
+      { "id": "SAMP-2", "name": "Sample Multi-Part Feature rollout", "section": "Framework Integrations",
+        "workflow_action": "In Progress", "assignee": "riley",
+        "pr": "https://github.com/sample-org/multi-part/pull/10" },
+      { "id": "SAMP-3", "name": "Backlog-only idea, not started", "section": "Ecosystem Expansion",
+        "workflow_action": "Not Started", "assignee": null, "pr": null }
+    ]
+  },
+  "narratives": [
+    { "title": "Narrative for Sample Framework Adapter", "source": "chorus",
+      "doc_id": "SAMPLEdoc01", "url": "https://chorus.aws.dev/doc/SAMPLEdoc01/",
+      "project": "Sample Framework Adapter" }
+  ],
+  "sources_consulted": [
+    "fixtures/run.db", "fixtures/taskei-sprint.json", "fixtures/chorus-narratives.json", "fixtures/report-prev.md"
+  ]
+}

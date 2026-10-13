@@ -51,6 +51,15 @@ tasks:
     env:
       GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
 
+  eval:statusrpt-compile:
+    desc: Evaluate the statusrpt-compile skill
+    cmds:
+      - "mkdir -p tmp"
+      - "rm -f {{.GH_MOCK_LOG_FILE}}"
+      - "npx promptfoo eval --no-cache --config {{.CONFIG}} --filter-metadata skill=statusrpt-compile --delay 0"
+    env:
+      GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
+
   eval:all:
     desc: Evaluate all skills (CONFIG=... to pick provider)
     cmds:

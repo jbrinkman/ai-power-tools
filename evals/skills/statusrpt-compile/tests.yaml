@@ -1,0 +1,114 @@
+# Per-skill EDD eval suite for statusrpt-compile.
+#
+# compile is the narrative writer: it consumes bundle.json (already assembled
+# by statusrpt-gather from an already-reconciled DB) and writes the weekly
+# report prose per the customer-reports house style. It does NOT reconcile
+# data and does NOT perform adversarial review — report-review-guidelines /
+# customer-report-review (existing, untouched) own that; compile's own eval
+# only needs to prove compile WRITES correctly, not re-implement the whole
+# review rulebook.
+#
+# House-style ground truth used for these criteria: customer-reports/README.md
+# (badge vocabulary, "On Track not In Progress when dated", purple=internal)
+# and the real report shape read from the project's own
+# 2026-status-reports/*.md (section order: Summary -> Last Week's Progress ->
+# This Week's Focus -> Website and Documentation Plan -> Dependencies -> Risks
+# -> Lowlights -> Goals -> Status Details incl. Infrastructure bullets ->
+# Staffing).
+#
+# Output is prose, not JSON/DB state, so criteria are graded with llm-rubric
+# (same grading style the mature report-review-guidelines skill uses).
+# ONE test: compiling one bundle into one report is one atomic unit of work.
+
+- description: >
+    Compile one bundle into a narrative report matching house style: correct
+    section set/order, valid badge vocabulary with the On-Track-when-dated
+    rule, no editorializing beyond what the bundle already decided (Not
+    Started tasks excluded, dropped reasons stated factually), continuity
+    with the prior report, and no leftover placeholder/malformed markup.
+  metadata:
+    skill: statusrpt-compile
+  vars:
+    skillFile: ../../skills/statusrpt-compile/SKILL.md
+    fixturesDir: skills/statusrpt-compile/fixtures
+    request: >
+      Compile the status report for 2099-01-12 from the bundle at
+      {{fixturesDir}}/bundle.json, using {{fixturesDir}}/report-prev.md as the
+      prior week's report for continuity. Follow the amazon-elasticache-
+      agentic report house style (see customer-reports/README.md if you need
+      the badge vocabulary). Output ONLY the compiled report markdown.
+  assert:
+    # Criterion 1 — required section set, in the house-style order
+    - type: llm-rubric
+      value: >
+        The output contains, in this relative order, at minimum the sections:
+        a Summary section with an Overall Status badge, a "Last Week's
+        Progress" section, a "This Week's Focus" section, a "Risks" section,
+        a "Goals" section, a "Status Details" (or equivalent project-details)
+        section that includes the Infrastructure items, and a "Staffing"
+        section. PASS only if all of these are present and in this relative
+        order; FAIL if any is missing or appears out of order.
+
+    # Criterion 2 — valid badge vocabulary only
+    - type: llm-rubric
+      value: >
+        Every status badge in the output uses ONLY words from this exact
+        approved list: Done, On Track, In Progress, Not Started, Blocked,
+        Off Track, At Risk, Paused, Pending Updates — rendered as
+        <span class="CLASS">WORD</span>. FAIL if any status is rendered as
+        plain text (e.g. "Completed", "In Review", "Pending") instead of one
+        of these exact badge words, or uses a badge word not on this list.
+
+    # Criterion 3 — On Track not In Progress when a date is present
+    - type: llm-rubric
+      value: >
+        The Sample Framework Adapter completion (merged and released in
+        v2.1.0, with a concrete date/version) is NOT rendered with an
+        "In Progress" badge. Per house style, a dated/completed item uses
+        "On Track" or "Done", never "In Progress", because "In Progress" is
+        reserved for undated items. FAIL if the output uses "In Progress" for
+        this dated item.
+
+    # Criterion 4 — Not-Started sprint task excluded from the written report
+    # (gather deliberately keeps it in the bundle; compile's house-style
+    # judgment is what drops it from the customer-facing narrative).
+    - type: llm-rubric
+      value: >
+        The sprint task "Backlog-only idea, not started" (bundle id SAMP-3,
+        workflow_action "Not Started", with no assignee) does NOT appear
+        anywhere in the compiled report's This Week's Focus or Last Week's
+        Progress sections. FAIL if it is mentioned in either section.
+
+    # Criterion 5 — dropped project stated factually with its reason, in Lowlights or similar
+    - type: llm-rubric
+      value: >
+        The report mentions that "Sample Session Store" was dropped/closed,
+        and states the real reason from the bundle (maintainers closed it as
+        not aligned with project direction) rather than a vague placeholder
+        like "no longer needed" or omitting the reason entirely. FAIL if the
+        project is not mentioned at all, or if the reason given contradicts
+        or omits the bundle's dropped_reason.
+
+    # Criterion 6 — Infrastructure rendered as a bullet list, not a markdown table
+    - type: llm-rubric
+      value: >
+        The Infrastructure items (sample_user dual-password support,
+        sample_cache_param_group name_prefix) are rendered as a bullet list
+        inside the Status Details section, each bullet carrying its PR link
+        and a status badge — NOT as a markdown table. FAIL if Infrastructure
+        appears as a table, or if either item is missing its PR link.
+
+    # Criterion 7 — Staffing has no personal names
+    - type: llm-rubric
+      value: >
+        The Staffing section reports counts/role information only (e.g.
+        "X of Y developers") and contains NO specific person names. FAIL if
+        any individual's name appears in the Staffing section.
+
+    # Criterion 8 — no leftover placeholder or template artifacts
+    - type: llm-rubric
+      value: >
+        The output contains no unresolved template placeholders (e.g. "TBD",
+        "{{...}}", "<INSERT ...>", "Lorem ipsum") and no literal word
+        "editorializ" or meta-commentary about the compilation process
+        itself. FAIL if any such artifact appears.

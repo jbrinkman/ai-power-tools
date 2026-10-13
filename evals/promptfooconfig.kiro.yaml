@@ -32,5 +32,6 @@ tests:
   - file://skills/github-issue-creator/tests.yaml
   - file://skills/statusrpt-pr-tables/tests.yaml
   - file://skills/statusrpt-gather/tests.yaml
+  - file://skills/statusrpt-compile/tests.yaml
 
 outputPath: results.html
