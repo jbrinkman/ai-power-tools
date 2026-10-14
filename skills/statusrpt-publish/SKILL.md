@@ -1,32 +1,45 @@
 ---
 name: statusrpt-publish
 description: >-
-  Land an already-compiled weekly status report into the
-  customer-reports repo: write it under the house path/filename convention,
+  Publish a weekly elasticache-agentic status report draft that the human has
+  ALREADY fully reviewed: write it under the house path/filename convention,
   commit on a feature branch, push, and open a PR titled from the report's H1.
-  Use when asked to "publish the status report", "land this week's report",
+  Use when asked to "publish the status report", "publish the reviewed
+  report", "land this week's report", "I've reviewed it, publish it",
   "submit/finalize the status report", or "open the report PR", given the
-  compiled report markdown, the bundle (for report_date), and the destination
-  repo root. Does NOT write the narrative (statusrpt-compile) or merge the PR
-  (that stays with the human).
+  reviewed draft markdown path, the bundle (for report_date), and the
+  destination repo root. Running this skill IS the human's go-ahead after
+  review — it must never be invoked automatically as a continuation of
+  statusrpt-create. Does NOT write the narrative (statusrpt-compile) or merge
+  the PR (that stays with the human).
 ---
 
-# Publish the Weekly Status Report
+# Publish the Reviewed Weekly Status Report
 
 ## Role
 
 You are the pipeline's landing stage — the last step after
-`statusrpt-pr-tables` → `statusrpt-gather` → `statusrpt-compile`.
-The report body is already written; you do NOT edit its prose. Your job is
-purely
-mechanical: put the file in the right place under the right name, land it on a
-feature branch, and open a PR for a human to review and merge. You never merge
-it yourself.
+`statusrpt-pr-tables` → `statusrpt-gather` → `statusrpt-compile`, and the
+second of two deliberately separate workflows. The report has ALREADY been
+created by `statusrpt-create` and ALREADY been reviewed by a human; the fact
+that this skill was invoked at all IS that human's go-ahead. You do not
+regenerate, re-reconcile, re-gather, re-compile, or edit its prose — doing so
+would discard the human's review by producing or publishing bytes they never
+saw. You publish exactly the reviewed draft you are handed, verbatim. Your
+job past that point is purely mechanical: put the file in the right place
+under the right name, land it on a feature branch, and open a PR for a human
+to review and merge. You never merge it yourself.
+
+If you were invoked without a reviewed draft on disk (no draft path given, or
+the path doesn't exist), STOP and say so — the correct first step is the
+separate `statusrpt-create` workflow followed by human review, not
+regenerating or guessing at a report here.
 
 ## Context — Inputs
 
-- The **compiled report markdown** at the path given — the exact bytes to
-  publish, unchanged. Read it to extract the H1 title; do not rewrite it.
+- The **reviewed draft** markdown at the path given — the exact bytes to
+  publish, unchanged. (Produced by `statusrpt-create`, then reviewed/edited
+  by the human.) Read it to extract the H1 title; do not rewrite it.
 - The **bundle** (`bundle.json`) at the path given — read `report_date`
   (`YYYY-MM-DD`); it is the single source of truth for the report's date.
 - The **destination repo root** given in the request — the local
@@ -73,11 +86,21 @@ the branch name, and the PR title that feed into it.
 - **GPG fallback.** Retry the commit once with `--no-gpg-sign` only if the
   first attempt fails on a GPG signing error. Do not disable signing
   pre-emptively.
-- **No prose edits.** You publish the compiled bytes verbatim. If the report
+- **No prose edits.** You publish the reviewed bytes verbatim. If the report
   looks wrong, that is compile's job, not yours — report it,
   don't fix it here.
+- **No reviewed draft, no publish.** If the given draft path (or bundle path)
+  doesn't exist on disk, stop immediately and say so, pointing back to
+  `statusrpt-create` — never regenerate, re-compile, or guess at report
+  content to fill the gap.
 
 ## Instructions
+
+### Step 0 — Confirm the reviewed inputs exist
+
+Confirm the draft path and bundle path were given and exist on disk. If
+either is missing, stop and tell the user to run `statusrpt-create` and
+review the draft first — do NOT attempt to create or compile a report here.
 
 ### Step 1 — Derive the destination path from report_date
 
@@ -102,10 +125,10 @@ yourself.
 
 ### Step 4 — Write the report file
 
-Copy the compiled report markdown verbatim to the destination path from
+Copy the reviewed draft markdown verbatim to the destination path from
 Step 1. Do not alter a single byte of its content — same H1, same badges, same
 sections. (This is the only file write; the bytes come straight from the
-compiled input.)
+reviewed draft input.)
 
 ### Step 5 — Run Allowed Commands 4-5 (stage and commit)
 
@@ -118,7 +141,7 @@ Always name the branch explicitly. Never a bare `git push`, never `--force`.
 
 ### Step 7 — Extract the PR title from the H1
 
-Read the compiled report's first `# ` heading, matching:
+Read the reviewed draft's first `# ` heading, matching:
 `# Amazon ElastiCache - Extended / Improving Vancouver Status Update YYYY-MM-DD`
 Use the text after `# ` (without the leading `# `) verbatim as the PR title.
 

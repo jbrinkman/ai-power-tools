@@ -218,15 +218,17 @@ Workflow 1 — statusrpt-create:
 
           ↓  (human fully reviews the draft — a real stop, not an in-run pause)
 
-Workflow 2 — statusrpt-publish-report (human invokes it, after review):
-  → statusrpt-publish  (land the reviewed draft on a branch + PR)
+Workflow 2 — statusrpt-publish (human invokes it, after review):
+  reads the reviewed draft + bundle from disk → lands it on a branch + PR
 ```
 
 The split is structural, not just a prompt-level pause: `statusrpt-create`
 has no path to publishing (it writes a draft to disk and stops), and
-`statusrpt-publish-report` only reads a reviewed draft from disk and never
-regenerates it. Invoke the individual stage skills directly only for a
-standalone/partial run (e.g. re-compiling after a hand-edited bundle).
+`statusrpt-publish` only reads a reviewed draft from disk and never
+regenerates it — there is no code path from one into the other, so the human
+invoking `statusrpt-publish` IS the review gate. Invoke the individual stage
+skills directly only for a standalone/partial run (e.g. re-compiling after a
+hand-edited bundle).
 
 #### statusrpt-create
 
@@ -237,15 +239,19 @@ review. Never pushes, commits, opens a PR, or invokes the publish workflow.
 **Triggers:** "create this week's status report", "draft the weekly report",
 "build the status report for review", "run the report-creation pipeline".
 
-#### statusrpt-publish-report
+#### statusrpt-publish
 
 Workflow 2, invoked by the human AFTER they've reviewed the draft. Takes the
-reviewed draft + bundle paths and publishes exactly those bytes via
-`statusrpt-publish`. Refuses to run (and points back to `statusrpt-create`)
-if handed no reviewed draft; never regenerates or re-compiles the report.
+reviewed draft + bundle paths (produced earlier by `statusrpt-create`) and
+publishes exactly those bytes, unchanged: write the file under the house
+path/filename convention, commit on a feature branch, push, and open a PR
+titled from the report's H1. Falls back to `--no-gpg-sign`, never
+force-pushes, and won't create a duplicate PR. Does NOT write the narrative
+(`statusrpt-compile`'s job) or merge the PR (stays with the human).
 
-**Triggers:** "publish the reviewed report", "I've reviewed it, publish it",
-"land the status report", "open the report PR".
+**Triggers:** "publish the status report", "publish the reviewed report",
+"land this week's report", "submit/finalize the status report", "open the
+report PR".
 
 #### statusrpt-pr-tables
 

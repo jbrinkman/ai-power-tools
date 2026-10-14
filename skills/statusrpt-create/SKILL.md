@@ -4,42 +4,36 @@ description: >-
   Create (but do NOT publish) the weekly elasticache-agentic status report:
   reconcile the database, assemble the bundle, and write the narrative —
   then STOP and hand the draft to the human
-  for review. This is the FIRST of two deliberately separate workflows; it
-  never pushes, commits, or opens a PR, and it has no path to publishing. Use
+  for review. This skill's responsibility ends at a reviewed draft on disk;
+  it never pushes, commits, or opens a PR, and has no path to publishing. Use
   when asked to "create this week's status report", "draft the weekly report",
   "build the status report for review", or "run the report-creation
   pipeline". Runs end-to-end with zero prompts: every input (report date,
   database, Confluence tracker page, Taskei room/sprint, Chorus narratives
   folder, prior report) has a baked-in default, and the user may override any
   of them in their request — but a bare invocation never stops to ask.
-  Publishing is a
-  SEPARATE skill (statusrpt-publish-report) the human invokes AFTER they have
-  fully reviewed this draft — the two are not linked and must not be
-  automated into one run.
 ---
 
 # Create the Weekly Status Report (for review, not for publishing)
 
 ## Role
 
-You are the report-creation workflow — the first of two deliberately separate
-workflows. You verify you're in the right workspace, confirm the repo is
-ready, then run the three creation stages in order, and produce a reviewed-
-ready draft on disk. **You stop there.** You do NOT publish, commit, push, or
-open a PR, and you do not invoke, suggest invoking, or "continue into" the
-publish workflow. The hard stop after this workflow is a human-in-the-loop
-boundary by design: a person must fully review the draft before any publish
-happens, and that review is not something this run can satisfy, shortcut, or
-hand off automatically.
+You are the report-creation workflow. Your single responsibility is: verify
+you're in the right workspace, confirm the repo is ready, run the three
+creation stages in order, and produce a reviewed-ready draft on disk. **You
+stop there.** You do NOT publish, commit, push, or open a PR. The hard stop
+after this workflow is a human-in-the-loop boundary by design: a person must
+fully review the draft before any publish happens, and that review is not
+something this run can satisfy, shortcut, or hand off automatically. What
+happens to the draft after you hand it off is outside this skill's
+responsibility — you do not need to know, name, or reason about whatever
+reads it next.
 
 ```
 [workspace check] → [pre-flight + cut branch] → statusrpt-pr-tables → statusrpt-gather → statusrpt-compile → [STOP — human review]
   (right repo/folder)    (off main, onto this        (reconcile DB)      (assemble bundle)   (write narrative)
                           run's feature branch)
 ```
-
-Publishing is the SEPARATE `statusrpt-publish-report` skill, which the human
-invokes themselves after review. This skill does not call it, and must not.
 
 ## Context — Inputs
 
@@ -80,8 +74,9 @@ database file does not exist, or the Confluence page returns an error).
   the request names a specific one (if none exists yet, proceed without a
   prior report rather than asking).
 
-You do NOT need (and must not ask for) the destination repo root — that
-belongs to the publish workflow, not this one.
+You do NOT need (and must not ask for) the destination repo root — landing
+the report on a branch and opening a PR is outside this skill's
+responsibility.
 
 ## Instructions
 
@@ -156,7 +151,14 @@ already certified against that exact file contract).
 1. Query every PR currently tracked in the database's `pull_requests` table
    (`owner`, `repo`, `number`) plus any new ones the Confluence tracker page
    names, via `gh api`/`gh pr view`, to build that same JSON shape.
-2. Write it to a scratch path (e.g. alongside the draft output).
+2. Write it under `$KIROCREW_SCRATCH` (e.g. `$KIROCREW_SCRATCH/statusrpt-
+   run-<report-date>/gh-api-responses.json`) — **never inside this
+   project's working tree**, not even in a dotfile or hidden folder. This
+   project only ever receives the two files Step 6 writes (the report and
+   its bundle sidecar); every other working file (fetched PR state, the
+   Confluence tracker fetch, intermediate scratch) belongs under
+   `$KIROCREW_SCRATCH` and must never be placed under `<year>-status-
+   reports/` or the project root.
 3. Invoke `statusrpt-pr-tables` with the database path, that live-fetched
    file, and the Confluence tracker page.
 
@@ -169,9 +171,8 @@ user before continuing; don't guess on its behalf.
 
 Invoke `statusrpt-gather` with the SAME (now-reconciled) database path, the
 Taskei sprint/room, the Chorus narratives folder, and the prior report path,
-plus this run's report date. Its only output is `bundle.json` — keep it; the
-publish workflow will need it later for `report_date`, so write it to a
-known path alongside the draft (see Step 6).
+plus this run's report date. Its only output is `bundle.json` — keep it;
+write it to a known path alongside the draft (see Step 6).
 
 ### Step 5 — Run statusrpt-compile
 
@@ -200,31 +201,31 @@ it — the first report of a new year always starts a new folder. This is the
 one point where a missing year-folder is correct and expected, as distinct
 from Step 1's check that at least one such folder exists at all.
 
-This filename is the same name the report keeps through publishing; the
-publish workflow commits and PRs this exact file — on the SAME feature
-branch (`elasticache-agentic-status-<YYYY-MM-DD>`) you cut in Step 2 and
-have remained on this entire run. The report is never written while `main`
-is checked out.
+This filename is the report's permanent name — whatever lands it on a branch
+and opens a PR later uses this exact file, on the SAME feature branch
+(`elasticache-agentic-status-<YYYY-MM-DD>`) you cut in Step 2 and have
+remained on this entire run. The report is never written while `main` is
+checked out.
 
 Write the bundle as a sidecar next to it:
-`elasticache-agentic-status-<YYYY-MM-DD>-bundle.json` (the publish workflow
-reads it for `report_date`). State both paths explicitly in your hand-off.
+`elasticache-agentic-status-<YYYY-MM-DD>-bundle.json`. State both paths
+explicitly in your hand-off.
 
 Then **stop and hand off to the human.** Your final message:
 - states the report path, the bundle path, and the branch name,
 - summarizes what pr-tables changed (counts by action),
 - tells the user to review the report fully, and
-- tells them that when they are satisfied, publishing is a SEPARATE step they
-  invoke themselves via `statusrpt-publish-report` with the report and bundle
-  paths — you will not and cannot do it as part of this run.
+- tells them that once they're satisfied, publishing it is a separate,
+  deliberate step they take themselves — you will not and cannot do it as
+  part of this run.
 
 Do not offer to publish, do not ask "shall I publish now", and do not treat a
 casual "looks good" as authorization to continue — publishing is a distinct
-workflow the human starts deliberately.
+step the human starts deliberately.
 
 ## Output
 
 A hand-off summary only: the report path, the bundle path, the branch name,
-pr-tables change counts, and the explicit instruction that
-publishing is the separate `statusrpt-publish-report` workflow to run after
-review. Never a PR, never a push, never a "continuing to publish".
+pr-tables change counts, and a plain statement that publishing is a separate
+step for the human to take when ready. Never a PR, never a push, never a
+"continuing to publish".
