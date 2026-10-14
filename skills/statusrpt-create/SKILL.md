@@ -1,17 +1,12 @@
 ---
 name: statusrpt-create
 description: >-
-  Create (but do NOT publish) the weekly elasticache-agentic status report:
-  reconcile the database, assemble the bundle, and write the narrative —
-  then STOP and hand the draft to the human
-  for review. This skill's responsibility ends at a reviewed draft on disk;
-  it never pushes, commits, or opens a PR, and has no path to publishing. Use
-  when asked to "create this week's status report", "draft the weekly report",
-  "build the status report for review", or "run the report-creation
-  pipeline". Runs end-to-end with zero prompts: every input (report date,
-  database, Confluence tracker page, Taskei room/sprint, Chorus narratives
-  folder, prior report) has a baked-in default, and the user may override any
-  of them in their request — but a bare invocation never stops to ask.
+  Create the weekly elasticache-agentic status report: reconcile the
+  database, assemble the bundle, write the narrative, and leave a
+  reviewed-ready draft on disk. Use when asked to "create this week's status
+  report", "draft the weekly report", "build the status report for review",
+  or "run the report-creation pipeline". Runs end-to-end from a bare
+  invocation; every input defaults and may be overridden in the request.
 ---
 
 # Create the Weekly Status Report (for review, not for publishing)

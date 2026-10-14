@@ -1,17 +1,13 @@
 ---
 name: statusrpt-publish
 description: >-
-  Publish a weekly elasticache-agentic status report draft that the human has
-  ALREADY fully reviewed: write it under the house path/filename convention,
-  commit on a feature branch, push, and open a PR titled from the report's H1.
-  Use when asked to "publish the status report", "publish the reviewed
-  report", "land this week's report", "I've reviewed it, publish it",
-  "submit/finalize the status report", or "open the report PR", given the
-  reviewed draft markdown path, the bundle (for report_date), and the
-  destination repo root. Running this skill IS the human's go-ahead after
-  review — it must never be invoked automatically as a continuation of
-  statusrpt-create. Does NOT write the narrative (statusrpt-compile) or merge
-  the PR (that stays with the human).
+  Land a reviewed weekly elasticache-agentic status report into the
+  customer-reports repo: write it under the house path convention, commit on
+  a feature branch, push, and open a PR titled from its H1. Use when asked to
+  "publish the status report", "publish the reviewed report", "land this
+  week's report", "I've reviewed it, publish it", "submit the status report",
+  or "open the report PR", given the reviewed draft path, its bundle, and the
+  destination repo root.
 ---
 
 # Publish the Reviewed Weekly Status Report
