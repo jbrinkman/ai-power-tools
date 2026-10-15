@@ -1,6 +1,6 @@
 ---
 name: merge-conflict-resolver
-description: Resolve merge conflicts on a GitHub pull request's branch, one conflicting file at a time, with the user in the loop. Use when a PR cannot merge because its branch has conflicts with the base, or when asked to "resolve the merge conflicts", "fix the conflicts", "rebase/merge the base branch", or "update the branch" on a PR. Merges the base branch into the PR head, and for each conflicting file presents the two sides and a proposed resolution; asks the user for clarification whenever a conflict's correct resolution is ambiguous. On approval it stages the resolved file, and once all files are resolved it completes the merge, runs the project's CI gate locally, and pushes the branch. Companion to pr-comment-resolver.
+description: Resolve merge conflicts on a GitHub pull request's branch, one conflicting file at a time, with the user in the loop. Use when a PR cannot merge because its branch has conflicts with the base, or when asked to "resolve the merge conflicts", "fix the conflicts", "rebase/merge the base branch", or "update the branch" on a PR. Defaults to merging the base branch into the PR head; rebases instead only when the user explicitly asks. For each conflicting file it presents the two sides and a proposed resolution, and asks the user for clarification whenever a conflict's correct resolution is ambiguous. On approval it stages the resolved file, and once all files are resolved it completes the integration, runs the project's CI gate locally, and pushes the branch. Companion to pr-comment-resolver.
 ---
 
 <!--
@@ -11,11 +11,11 @@ verify-ci-checks push gate, and pushing (same-repo vs fork) safely.
 
 # Resolve Merge Conflicts
 
-Resolve the merge conflicts on a GitHub pull request's branch by merging the
-base branch into the PR head and working through each conflicting file one at a
-time, with the user in the loop. This is a companion to `pr-comment-resolver`:
-that skill addresses review comments; this one gets a conflicted branch
-mergeable again.
+Resolve the merge conflicts on a GitHub pull request's branch by integrating the
+base branch into the PR head — merging by default, or rebasing when the user
+explicitly asks — and working through each conflicting file one at a time, with
+the user in the loop. This is a companion to `pr-comment-resolver`: that skill
+addresses review comments; this one gets a conflicted branch mergeable again.
 
 Do not batch. Present one conflicting file, propose a resolution, get a
 decision, stage it, then move to the next. **Whenever a conflict's correct
@@ -62,7 +62,7 @@ gh pr view <pr_number> --repo OWNER/REPO \
   (`MERGEABLE` / `CLEAN`), tell the user there are no conflicts to resolve and
   stop — do not merge the base in unnecessarily.
 
-## Step 3: Decide the integration strategy — merge, not rebase
+## Step 3: Decide the integration strategy — merge by default, rebase on request
 
 Default to **merging the base branch into the PR head** (`git merge`), not
 rebasing. A merge adds one new merge commit on top of the existing, already-pushed
@@ -71,21 +71,31 @@ in Step 7 is an ordinary fast-forwardable push with no force. A rebase rewrites
 the branch's commits and would require a force-push, which is blocked by policy
 on protected branches and is risky on any branch others may have pulled.
 
-Only rebase if the user **explicitly** asks for a rebase and understands it
-rewrites history and needs a force-push to the (non-protected) feature branch. If
-so, confirm the branch is not protected and that the user accepts the force-push
-before proceeding. Otherwise, use merge. Do not switch strategies silently.
+Rebase **is** supported, but only when the user **explicitly** asks for it and
+understands it rewrites the branch's history and needs a force-push to the
+(non-protected) feature branch. Before starting a rebase, confirm the head branch
+is not a protected branch and that the user accepts the force-push. If the user
+has not asked for a rebase, default to merge — do not switch strategies silently.
 
-## Step 4: Check out the PR branch and start the merge
+The per-file conflict resolution (Steps 5 and 6) is identical for both
+strategies. Only the *start* (Step 4) and the *completion and push* (Step 7)
+differ, and each of those steps has an explicit **merge path** and **rebase
+path** below. Pick the path matching the chosen strategy and follow it
+throughout; do not mix a merge start with a rebase completion.
+
+## Step 4: Check out the PR branch and start the integration
 
 1. Run `git status --porcelain` first. If the working tree is not clean, stop and
    ask the user how to handle the uncommitted changes — do not stash or discard
    without direction, and do not check out over them.
 2. Check out the PR's head branch: `gh pr checkout <pr_number> --repo OWNER/REPO`.
-3. Fetch the latest base branch so the merge is against current state:
+3. Fetch the latest base branch so the integration is against current state:
    `git fetch origin <baseRefName>`.
-4. Start the merge **without auto-committing**, so you control the resolution and
-   the final commit:
+4. Start the integration using the path for the chosen strategy. **Do not run the
+   other path's commands.**
+
+   **Merge path (default).** Start the merge **without auto-committing**, so you
+   control the resolution and the final commit:
 
    ```bash
    git merge --no-commit --no-ff origin/<baseRefName>
@@ -97,6 +107,25 @@ before proceeding. Otherwise, use merge. Do not switch strategies silently.
      stop.
    - If it reports conflicts, continue to Step 5. Do **not** run
      `git merge --continue` or commit yet.
+
+   **Rebase path (only when the user explicitly asked, per Step 3).** Replay the
+   PR's commits on top of the current base:
+
+   ```bash
+   git rebase origin/<baseRefName>
+   ```
+
+   - If this reports the branch is up to date or finishes with no conflicts, there
+     is nothing to resolve — tell the user the branch rebases cleanly and
+     continue to Step 7's rebase path to push the (now rewritten) branch.
+   - If it stops with conflicts, git pauses the rebase at the first conflicting
+     commit. Continue to Step 5. A rebase resolves **one replayed commit at a
+     time**: Step 5/6 resolve the current commit's conflicts, then Step 7's
+     rebase path runs `git rebase --continue`, which may stop again at the next
+     conflicting commit — repeat Steps 5–7 for each until the rebase finishes.
+     Do **not** run `git commit` during a rebase; `git rebase --continue` makes
+     the commit. If you need to back out entirely, `git rebase --abort` restores
+     the pre-rebase branch.
 
 ## Step 5: Enumerate the conflicting files
 
@@ -161,47 +190,66 @@ After writing the resolution:
    `git grep -nE '^(<<<<<<<|=======|>>>>>>>)' -- <file>` should print nothing.
 2. **Stage the file explicitly**: `git add <file>`. This is required — a file
    edited to remove markers stays `UU` (unmerged) in the index until it is added,
-   and the merge cannot be completed while any path is unmerged. Stage the
-   specific file, not `git add .`.
+   and neither the merge nor the rebase can continue while any path is unmerged.
+   Stage the specific file, not `git add .`.
 3. Re-check `git diff --name-only --diff-filter=U` to confirm this file dropped
    out of the unmerged set.
 
 Move to the next file only after the current one is resolved and staged (or the
 user explicitly Skipped it).
 
-## Step 7: Complete the merge, gate, and push
+## Step 7: Complete the integration, gate, and push
 
-Only once **every** conflicting file is resolved and staged (no Skipped files
-remain):
+Only once **every** conflicting file in the current step is resolved and staged
+(no Skipped files remain):
 
 1. **Confirm the index is clean of conflicts**:
    `git diff --name-only --diff-filter=U` must print nothing. If anything
    remains, go back to Step 6 for those files — do not proceed.
-2. **Complete the merge commit**:
+2. **Complete the integration** using the path for the chosen strategy.
+
+   **Merge path (default).** Create the merge commit:
 
    ```bash
    git commit --no-edit
    ```
 
    Use the default merge message. Respect the repo's signing config; add
-   `--no-gpg-sign` only if gpg is unavailable on this machine. (For a
-   user-approved rebase instead of a merge, use `git rebase --continue` here, and
-   expect to repeat Step 6 for each replayed commit that conflicts.)
+   `--no-gpg-sign` only if gpg is unavailable on this machine. The merge is now
+   complete — continue to the gate.
+
+   **Rebase path.** Continue the rebase; this commits the resolved commit for
+   you (do **not** run `git commit` yourself during a rebase):
+
+   ```bash
+   git rebase --continue
+   ```
+
+   - If the rebase **stops again** at the next conflicting commit, go back to
+     Step 5 and resolve that commit's conflicts, then return here and
+     `git rebase --continue` again. Repeat until the rebase reports it has
+     finished replaying all commits.
+   - Only when the rebase is fully finished (no more commits to replay) is the
+     integration complete — continue to the gate.
 3. **Gate on CI checks before pushing.** Invoke the `verify-ci-checks` skill to
-   discover and run the project's CI build checks locally against the merged
-   tree. A merge can compile cleanly yet still break tests when two
+   discover and run the project's CI build checks locally against the integrated
+   tree. An integration can compile cleanly yet still break tests when two
    independently-correct changes interact — the gate catches that before the
    branch leaves the machine.
    - **Gate PASS** — proceed to push.
-   - **Gate FAIL** — do **not** push. The failing checks are a sign the merge
-     resolution is wrong or incomplete. Fix the resolution (amend the merge
-     commit or add a follow-up commit), re-run the gate, and repeat until it
-     passes. If the same check keeps failing after a few focused attempts, stop
-     and surface it to the user rather than thrashing.
+   - **Gate FAIL** — do **not** push. The failing checks are a sign the conflict
+     resolution is wrong or incomplete. Fix the resolution (for a merge, amend the
+     merge commit or add a follow-up commit; for a rebase, the failing commit can
+     be amended since the branch is being rewritten anyway), re-run the gate, and
+     repeat until it passes. If the same check keeps failing after a few focused
+     attempts, stop and surface it to the user rather than thrashing.
    - **NOT APPLICABLE** — the project exposes no discoverable checks; note that
      and proceed to push.
-4. **Push** to the PR's head branch. Which remote is correct depends on where the
-   PR comes from (`isCrossRepository` from Step 2):
+4. **Push** to the PR's head branch. The push differs by strategy *and* by where
+   the PR comes from (`isCrossRepository` from Step 2).
+
+   **Merge path — ordinary push (no force).** A merge only adds a commit, so the
+   push fast-forwards:
    - **Same-repo PR**: push naming the branch explicitly —
      `git push origin <head-branch>`.
    - **Fork PR** (`isCrossRepository` is `true`): `origin` points at the base
@@ -212,10 +260,21 @@ remain):
      edits from maintainers"; if the push is rejected for permissions, stop and
      tell the user rather than forcing it.
 
+   **Rebase path — force-push required.** A rebase rewrote the branch's commits,
+   so a plain push is rejected (non-fast-forward); the branch must be
+   force-pushed. Do this only after confirming in Step 3 that the head branch is
+   **not** a protected branch (`main`/`master`/`mainline`) and the user accepted
+   the force-push — force-pushing a protected branch is blocked by policy and must
+   never be attempted.
+   - Use `--force-with-lease`, never a bare `--force`: it refuses if the remote
+     moved since you last fetched, protecting a collaborator's intervening push.
+   - **Same-repo PR**: `git push --force-with-lease origin <head-branch>`.
+   - **Fork PR**: resolve the head remote as above and
+     `git push --force-with-lease <head-remote> <head-branch>` (still requires
+     "Allow edits from maintainers"; stop and tell the user if rejected).
+
    In all cases name the branch (and remote) explicitly — a bare `git push`, and
-   any force-push to a protected branch, are blocked by policy. The merge path in
-   this skill never needs a force-push; only a user-approved rebase does, and
-   then only to a non-protected feature branch.
+   any force-push to a protected branch, are blocked by policy.
 
 ## Step 8: Confirm and summarize
 
@@ -232,10 +291,11 @@ remain):
 | 3 | `docs/x.md` | both-modified | User supplied combined wording | Alternative |
 | 4 | `cfg.yaml` | delete/modify | Kept the file per user's call | Clarified |
 
-3. Report the final state: the merge commit SHA (`git rev-parse HEAD`), the gate
-   verdict, that the branch was pushed, and the PR's recomputed mergeability.
-4. List any file left **Skipped** — the merge was NOT completed if any remain, so
-   say so explicitly and recommend re-running the skill to finish them.
+3. Report the final state: the resulting head SHA (`git rev-parse HEAD`), whether
+   it was a merge or a rebase, the gate verdict, that the branch was pushed (noting
+   a force-push for the rebase path), and the PR's recomputed mergeability.
+4. List any file left **Skipped** — the integration was NOT completed if any
+   remain, so say so explicitly and recommend re-running the skill to finish them.
 
 ## Exit criteria
 
@@ -244,9 +304,11 @@ remain):
   resolved.
 - Each file was resolved by an explicit user decision and staged, with no
   conflict markers left in any file.
-- The merge was completed only after the index was free of unmerged paths; the
-  `verify-ci-checks` gate was run and passed (or was not applicable) before the
-  push.
-- The branch was pushed naming the branch explicitly (no bare or force push to a
-  protected branch), the PR's mergeability was re-checked, and a summary table
-  plus any remaining Skipped files were reported.
+- The integration was completed only after the index was free of unmerged paths
+  (for a rebase, this held at every replayed commit); the `verify-ci-checks` gate
+  was run and passed (or was not applicable) before the push.
+- The branch was pushed naming the branch (and remote) explicitly — an ordinary
+  push for the merge path, or a `--force-with-lease` push for a user-approved
+  rebase, never a bare push and never a force-push to a protected branch — the
+  PR's mergeability was re-checked, and a summary table plus any remaining Skipped
+  files were reported.
