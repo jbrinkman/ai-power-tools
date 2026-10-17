@@ -25,8 +25,13 @@ next. Never move on until the user responds.
    authenticated. If it fails, stop and ask the user to install
    (`brew install gh`) and authenticate (`gh auth login`).
 2. Confirm the current directory is a clone of the PR's repository. Committing
-   requires the working tree, not just API access; Step 2 checks out the PR's
-   head branch.
+   requires the working tree, not just API access.
+3. This skill does **not** check out the PR branch in your current clone. All
+   work happens in a dedicated git worktree (Step 2) so that two sessions
+   working different PRs in the same clone never fight over the checked-out
+   branch. The worktree is a separate working directory with its own branch, so
+   your current clone's branch is never changed and needs no restoring — removing
+   the worktree at the end (Step 9) leaves the clone exactly as it was.
 
 ## Step 1: Identify the PR
 
@@ -38,16 +43,54 @@ URL, or "the current branch's PR". Resolve `owner`, `repo`, and `pr_number`.
 - Record `OWNER/REPO` for all later `gh api` calls; pass `--repo OWNER/REPO`
   explicitly so cross-repo PRs work.
 
-## Step 2: Check out the PR branch
+## Step 2: Create an isolated worktree for the PR branch
 
-The fixes are committed onto the PR's head branch, so it must be checked out
-locally with a clean working tree.
+The fixes are committed onto the PR's head branch. Rather than checking that
+branch out in the current clone (which would switch the branch out from under
+any other session using the same clone, and leave the user on the PR branch
+afterward), create a dedicated **git worktree** and do all the work there. A
+worktree is a second working directory attached to the same repository, with its
+own checked-out branch — so concurrent sessions on different PRs never collide,
+and your starting clone's branch is never touched.
 
-1. Run `git status --porcelain` first. If the tree is not clean, stop and ask
-   the user how to handle the uncommitted changes — do not stash or discard
-   without direction, and do not check out over them.
-2. Run `gh pr checkout <pr_number> --repo OWNER/REPO`.
-3. Run `git status` again to confirm the PR branch is clean before making edits.
+1. Run `git status --porcelain` in the current clone first. If the tree is not
+   clean, that is fine for worktree creation — the worktree is separate — but if
+   the user intended those changes for this PR, stop and ask. Do not stash or
+   discard anything.
+2. Fetch the PR's head ref and create a dedicated worktree for it under
+   `$KIROCREW_SCRATCH` (session-owned scratch, reclaimed automatically). This
+   sequence works for both same-repo and fork PRs:
+
+   ```bash
+   HEAD_BRANCH=$(gh pr view <pr_number> --repo OWNER/REPO --json headRefName -q .headRefName)
+   WT="$KIROCREW_SCRATCH/pr-comment-resolver/<pr_number>-${HEAD_BRANCH//\//-}"
+
+   # Fetch the PR head into a local branch named after the PR head.
+   # pull/<n>/head resolves the PR's commits regardless of same-repo vs fork.
+   git fetch origin "pull/<pr_number>/head:$HEAD_BRANCH"
+
+   # Attach a worktree checked out to that branch.
+   git worktree add "$WT" "$HEAD_BRANCH"
+   ```
+
+   - If `git fetch` into `$HEAD_BRANCH` fails because that local branch already
+     exists and points elsewhere, add the worktree against the existing branch
+     instead: `git worktree add "$WT" "$HEAD_BRANCH"`.
+   - If `git worktree add` reports the branch is already checked out in another
+     worktree (a concurrent run), run `git worktree list`, reuse that existing
+     worktree path as `$WT`, and skip creating a new one.
+3. **Change into the worktree** and treat it as your working directory for the
+   rest of the pass: `cd "$WT"`. Confirm it is clean and on the PR branch with
+   `git status`. Every edit, commit, and push in Steps 4–6 happens here, never in
+   the user's original clone.
+4. Record the worktree path `$WT` and the main clone root — Step 9 removes the
+   worktree and leaves the original clone untouched (no branch restore needed,
+   because the clone's branch was never changed).
+
+Note on pushing (Step 5): a worktree branch created this way has no upstream set,
+and for a fork PR `origin` is the base repo. Step 5 always names the remote and
+branch explicitly and resolves the correct head remote for forks, so no upstream
+is required here.
 
 ## Step 3: Gather PR context and comments
 
@@ -186,19 +229,19 @@ Do these in order, per comment, so each fix maps to exactly one commit:
      it to the user rather than thrashing.
    - **NOT APPLICABLE** — the project exposes no discoverable checks; note that
      and proceed to push.
-4. **Push** to the PR's head branch. Whether `origin` is the right remote
-   depends on where the PR comes from (see the `isCrossRepository` metadata from
-   Step 3):
+4. **Push** to the PR's head branch from inside the worktree. Whether `origin`
+   is the right remote depends on where the PR comes from (see the
+   `isCrossRepository` metadata from Step 3):
    - **Same-repo PR**: push naming the branch explicitly —
      `git push origin <head-branch>`.
    - **Fork PR** (`isCrossRepository` is `true`): `origin` points at the base
-     repo, not the fork, so pushing there is wrong. `gh pr checkout` configures
-     the local branch to track the correct head remote — push to that tracking
-     branch: find it with
-     `git rev-parse --abbrev-ref --symbolic-full-name @{u}` (e.g. `fork/branch`)
-     and run `git push <head-remote> <head-branch>`. This requires the fork to
-     have "Allow edits from maintainers" enabled; if the push is rejected for
-     permissions, stop and tell the user rather than forcing it.
+     repo, not the fork, so pushing there is wrong. The worktree branch has no
+     fork remote configured, so add one and push to it explicitly:
+     `git remote add fork https://github.com/<headRepositoryOwner>/REPO.git`
+     (skip if a remote already points at the fork), then
+     `git push fork <head-branch>`. This requires the fork to have "Allow edits
+     from maintainers" enabled; if the push is rejected for permissions, stop and
+     tell the user rather than forcing it.
    In all cases name the branch (and remote) explicitly — a bare `git push` is
    blocked by policy.
 5. **Capture the commit ref**: `git rev-parse HEAD` (short form for the reply).
@@ -295,6 +338,39 @@ by re-counting:
 Because each resolved thread disappears from the next `first:100` fetch, repeated
 runs converge on zero without any pagination logic in the skill.
 
+## Step 9: Clean up the worktree
+
+Always run this step, even if the pass ended early, failed, or the user stopped
+it — the scratch worktree should not be left behind. Because the worktree is a
+separate working directory, the user's original clone was never switched off its
+branch, so there is nothing to restore: removing the worktree leaves the clone
+exactly as the user left it (even if they changed its branch in another session
+meanwhile).
+
+1. Leave the worktree directory before removing it — change into the main clone
+   root recorded in Step 2 (not the worktree, which is about to be deleted):
+
+   ```bash
+   cd <main-clone-root>
+   ```
+
+2. Remove the worktree (this deletes the scratch working directory but keeps the
+   local branch and all pushed commits):
+
+   ```bash
+   git worktree remove "$WT"
+   ```
+
+   If `git worktree remove` refuses because the worktree has uncommitted changes
+   (there should be none — every approved fix was committed), investigate rather
+   than forcing: surface it to the user. Only use `--force` after confirming the
+   leftover changes are expendable.
+3. Optionally prune the local PR branch created in Step 2 if the user does not
+   want it lingering: `git branch -D <head-branch>` (safe — the work is pushed to
+   the remote PR). Leave it if unsure.
+4. Note in the final summary that the worktree was removed and the user's clone
+   was left untouched on whatever branch it was on.
+
 ## Exit criteria
 
 - Every unresolved review thread has been presented with an independent validity
@@ -307,3 +383,6 @@ runs converge on zero without any pagination logic in the skill.
   comments left open have been shown.
 - A final re-count of unresolved threads has been run; if any remain, the count
   was reported and a re-run of the skill was suggested.
+- All work was done in an isolated git worktree (never by switching the current
+  clone's branch), and the worktree was removed at the end — leaving the user's
+  clone untouched on whatever branch it was on.
