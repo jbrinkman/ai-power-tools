@@ -5,8 +5,9 @@ description: Resolve merge conflicts on a GitHub pull request's branch, one conf
 
 <!--
 Companion to the pr-comment-resolver and code-review skills. Reuses the same
-gh / git conventions for identifying a PR, checking out its branch, running the
-verify-ci-checks push gate, and pushing (same-repo vs fork) safely.
+gh / git conventions for identifying a PR, isolating its branch in a git
+worktree, running the verify-ci-checks push gate, and pushing (same-repo vs
+fork) safely.
 -->
 
 # Resolve Merge Conflicts
@@ -31,6 +32,12 @@ merge.
    (`brew install gh`) and authenticate (`gh auth login`).
 2. Confirm the current directory is a clone of the PR's repository. Resolving
    conflicts requires the working tree, not just API access.
+3. This skill does **not** check out the PR branch in your current clone. All
+   work happens in a dedicated git worktree (Step 4) so that two sessions
+   working different PRs in the same clone never fight over the checked-out
+   branch. The worktree is a separate working directory with its own branch, so
+   your current clone's branch is never changed and needs no restoring — removing
+   the worktree at the end (Step 9) leaves the clone exactly as it was.
 
 ## Step 1: Identify the PR
 
@@ -83,15 +90,50 @@ differ, and each of those steps has an explicit **merge path** and **rebase
 path** below. Pick the path matching the chosen strategy and follow it
 throughout; do not mix a merge start with a rebase completion.
 
-## Step 4: Check out the PR branch and start the integration
+## Step 4: Create an isolated worktree and start the integration
 
-1. Run `git status --porcelain` first. If the working tree is not clean, stop and
-   ask the user how to handle the uncommitted changes — do not stash or discard
-   without direction, and do not check out over them.
-2. Check out the PR's head branch: `gh pr checkout <pr_number> --repo OWNER/REPO`.
-3. Fetch the latest base branch so the integration is against current state:
+Rather than checking the PR branch out in the current clone (which would switch
+the branch out from under any other session using the same clone, and leave the
+user on the PR branch afterward), create a dedicated **git worktree** and do all
+the integration there. A worktree is a second working directory attached to the
+same repository, with its own checked-out branch — so concurrent sessions on
+different PRs never collide, and your starting clone's branch is never touched.
+
+1. Run `git status --porcelain` in the current clone first. If the working tree
+   is not clean, that is fine for worktree creation — the worktree is separate —
+   but if the user intended those changes for this PR, stop and ask. Do not stash
+   or discard anything.
+2. Fetch the PR's head ref and create a dedicated worktree for it under
+   `$KIROCREW_SCRATCH` (session-owned scratch, reclaimed automatically). This
+   sequence works for both same-repo and fork PRs:
+
+   ```bash
+   HEAD_BRANCH=$(gh pr view <pr_number> --repo OWNER/REPO --json headRefName -q .headRefName)
+   WT="$KIROCREW_SCRATCH/merge-conflict-resolver/<pr_number>-${HEAD_BRANCH//\//-}"
+
+   # Fetch the PR head into a local branch named after the PR head.
+   # pull/<n>/head resolves the PR's commits regardless of same-repo vs fork.
+   git fetch origin "pull/<pr_number>/head:$HEAD_BRANCH"
+
+   # Attach a worktree checked out to that branch.
+   git worktree add "$WT" "$HEAD_BRANCH"
+   ```
+
+   - If `git fetch` into `$HEAD_BRANCH` fails because that local branch already
+     exists and points elsewhere, add the worktree against the existing branch:
+     `git worktree add "$WT" "$HEAD_BRANCH"`.
+   - If `git worktree add` reports the branch is already checked out in another
+     worktree (a concurrent run), run `git worktree list`, reuse that existing
+     worktree path as `$WT`, and skip creating a new one.
+3. **Change into the worktree** and treat it as your working directory for the
+   rest of the pass: `cd "$WT"`. Record the worktree path `$WT` and the main
+   clone root — Step 9 removes the worktree and leaves the original clone
+   untouched (no branch restore needed, because the clone's branch was never
+   changed). Every command in Steps 5–8 runs here, never in the user's original
+   clone.
+4. Fetch the latest base branch so the integration is against current state:
    `git fetch origin <baseRefName>`.
-4. Start the integration using the path for the chosen strategy. **Do not run the
+5. Start the integration using the path for the chosen strategy. **Do not run the
    other path's commands.**
 
    **Merge path (default).** Start the merge **without auto-committing**, so you
@@ -103,8 +145,8 @@ throughout; do not mix a merge start with a rebase completion.
 
    - If this prints `Already up to date.` or exits with no conflicts and a clean
      merge, there is nothing to resolve — abort any in-progress state with
-     `git merge --abort` if needed, tell the user the branch merges cleanly, and
-     stop.
+     `git merge --abort` if needed, tell the user the branch merges cleanly, then
+     go to Step 9 to clean up the worktree.
    - If it reports conflicts, continue to Step 5. Do **not** run
      `git merge --continue` or commit yet.
 
@@ -253,12 +295,13 @@ Only once **every** conflicting file in the current step is resolved and staged
    - **Same-repo PR**: push naming the branch explicitly —
      `git push origin <head-branch>`.
    - **Fork PR** (`isCrossRepository` is `true`): `origin` points at the base
-     repo, so pushing there is wrong. `gh pr checkout` configures the local
-     branch to track the fork — find it with
-     `git rev-parse --abbrev-ref --symbolic-full-name @{u}` (e.g. `fork/branch`)
-     and run `git push <head-remote> <head-branch>`. This needs the fork's "Allow
-     edits from maintainers"; if the push is rejected for permissions, stop and
-     tell the user rather than forcing it.
+     repo, so pushing there is wrong. The worktree branch has no fork remote
+     configured, so add one and push to it explicitly:
+     `git remote add fork https://github.com/<headRepositoryOwner>/REPO.git`
+     (skip if a remote already points at the fork), then
+     `git push fork <head-branch>`. This needs the fork's "Allow edits from
+     maintainers"; if the push is rejected for permissions, stop and tell the
+     user rather than forcing it.
 
    **Rebase path — force-push required.** A rebase rewrote the branch's commits,
    so a plain push is rejected (non-fast-forward); the branch must be
@@ -269,8 +312,8 @@ Only once **every** conflicting file in the current step is resolved and staged
    - Use `--force-with-lease`, never a bare `--force`: it refuses if the remote
      moved since you last fetched, protecting a collaborator's intervening push.
    - **Same-repo PR**: `git push --force-with-lease origin <head-branch>`.
-   - **Fork PR**: resolve the head remote as above and
-     `git push --force-with-lease <head-remote> <head-branch>` (still requires
+   - **Fork PR**: add/resolve the `fork` remote as in the merge path above and
+     `git push --force-with-lease fork <head-branch>` (still requires
      "Allow edits from maintainers"; stop and tell the user if rejected).
 
    In all cases name the branch (and remote) explicitly — a bare `git push`, and
@@ -297,6 +340,45 @@ Only once **every** conflicting file in the current step is resolved and staged
 4. List any file left **Skipped** — the integration was NOT completed if any
    remain, so say so explicitly and recommend re-running the skill to finish them.
 
+## Step 9: Clean up the worktree
+
+Always run this step, even if the pass ended early, failed, or the user stopped
+it — the scratch worktree should not be left behind. Because the worktree is a
+separate working directory, the user's original clone was never switched off its
+branch, so there is nothing to restore: removing the worktree leaves the clone
+exactly as the user left it (even if they changed its branch in another session
+meanwhile).
+
+If a merge or rebase is still in progress because the pass stopped early (e.g. a
+Skipped file blocked completion), abort it in the worktree first
+(`git merge --abort` or `git rebase --abort`) **only if the user agrees to
+discard the partial integration** — otherwise leave the worktree in place so the
+user can finish it, and say so instead of removing it.
+
+1. Leave the worktree directory before removing it — change into the main clone
+   root recorded in Step 4 (not the worktree, which is about to be deleted):
+
+   ```bash
+   cd <main-clone-root>
+   ```
+
+2. Remove the worktree (this deletes the scratch working directory but keeps the
+   local branch and all pushed commits):
+
+   ```bash
+   git worktree remove "$WT"
+   ```
+
+   If `git worktree remove` refuses because the worktree has uncommitted changes
+   or an in-progress integration, do not force it blindly — surface it to the
+   user. Only use `--force` after confirming the leftover state is expendable.
+3. Optionally prune the local PR branch created in Step 4 if the user does not
+   want it lingering: `git branch -D <head-branch>` (safe once the integration is
+   pushed to the remote PR). Leave it if unsure or if the integration was not
+   completed.
+4. Note in the final summary that the worktree was removed and the user's clone
+   was left untouched on whatever branch it was on.
+
 ## Exit criteria
 
 - Every conflicting file was presented with both sides and a proposed resolution,
@@ -312,3 +394,6 @@ Only once **every** conflicting file in the current step is resolved and staged
   rebase, never a bare push and never a force-push to a protected branch — the
   PR's mergeability was re-checked, and a summary table plus any remaining Skipped
   files were reported.
+- All work was done in an isolated git worktree (never by switching the current
+  clone's branch), and the worktree was removed at the end — leaving the user's
+  clone untouched on whatever branch it was on.
