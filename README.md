@@ -112,6 +112,20 @@ every comment and its resolution. Requires `gh`.
 **Triggers:** "resolve/address/respond to PR review comments", "fix the review
 comments".
 
+#### merge-conflict-resolver
+
+Resolve merge conflicts on a GitHub PR's branch one conflicting file at a time,
+with you in the loop (the companion to `pr-comment-resolver`). Merges the base
+branch into the PR head (never rebases unless you explicitly ask), and for each
+conflicting file shows both sides and a proposed resolution — stopping to ask for
+clarification whenever a conflict is ambiguous rather than guessing a semantic
+merge. On approval it stages the file; once all are resolved it completes the
+merge, runs the `verify-ci-checks` gate locally, pushes the branch, and
+re-confirms mergeability. Requires `gh`.
+
+**Triggers:** "resolve the merge conflicts", "fix the conflicts", "update the
+branch", "merge the base branch into this PR".
+
 ### Valkey / Narrative Review
 
 #### review-valkey-narrative
@@ -309,6 +323,7 @@ ai-power-tools/
 │   ├── github-issue-creator/
 │   ├── jira-cli/
 │   ├── jira-story-creator/
+│   ├── merge-conflict-resolver/
 │   ├── pr-comment-resolver/
 │   ├── review-valkey-narrative/
 │   ├── status-finalize-report/
