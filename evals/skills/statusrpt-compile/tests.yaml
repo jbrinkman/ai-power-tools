@@ -1,0 +1,220 @@
+# Per-skill EDD eval suite for statusrpt-compile.
+#
+# compile is the narrative writer: it consumes bundle.json (already assembled
+# by statusrpt-gather from an already-reconciled DB) and writes the weekly
+# report prose per the customer-reports house style. It does NOT reconcile
+# data and does NOT perform adversarial review — report-review-guidelines /
+# customer-report-review (existing, untouched) own that; compile's own eval
+# only needs to prove compile WRITES correctly, not re-implement the whole
+# review rulebook.
+#
+# DETERMINISTIC-FIRST: most house-style rules are mechanically checkable
+# (section headers present, a closed badge vocabulary, no plain-text status
+# words, no leftover meta-commentary, a named task absent/present) — none of
+# that needs an LLM judge, and deterministic checks are cheap to run and
+# don't drift between runs. llm-rubric is reserved for the handful of
+# criteria that genuinely require reading comprehension (e.g. "does the
+# dropped reason match the bundle's stated reason").
+#
+# House-style ground truth: customer-reports/README.md (badge vocabulary,
+# "On Track not In Progress when dated", purple=internal, a SEPARATE
+# red/orange/yellow High/Medium/Low vocabulary for Risk severity) and the
+# real report shape read from the project's own 2026-status-reports/*.md.
+#
+# ONE test: compiling one bundle into one report is one atomic unit of work.
+
+- description: >
+    Compile one bundle into a narrative report matching house style: correct
+    section set/order, valid badge vocabulary with the On-Track-when-dated
+    rule, no editorializing beyond what the bundle already decided (Not
+    Started tasks excluded, dropped reasons stated factually), continuity
+    with the prior report, and no leftover placeholder/malformed markup.
+  metadata:
+    skill: statusrpt-compile
+  vars:
+    skillFile: ../../skills/statusrpt-compile/SKILL.md
+    fixturesDir: skills/statusrpt-compile/fixtures
+    request: >
+      Compile the status report for 2099-01-12 from the bundle at
+      {{fixturesDir}}/bundle.json, using {{fixturesDir}}/report-prev.md as the
+      prior week's report for continuity. Follow the amazon-elasticache-
+      agentic report house style (see customer-reports/README.md if you need
+      the badge vocabulary). Output ONLY the compiled report markdown — no
+      preamble, no explanation of what you did.
+  assert:
+    # --- Criterion 1: required sections present, in house-style order (deterministic) ---
+    - type: javascript
+      value: |
+        const headings = ["## Summary", "## Last Week's Progress", "## This Week's Focus",
+                           "## Risks", "## Goals", "## Status Details", "## Staffing"];
+        const positions = headings.map(h => output.indexOf(h));
+        const missing = headings.filter((h, i) => positions[i] === -1);
+        if (missing.length > 0) {
+          return { pass: false, score: 0, reason: `Missing section(s): ${missing.join(', ')}` };
+        }
+        const sorted = positions.every((p, i) => i === 0 || p > positions[i - 1]);
+        return sorted
+          ? { pass: true, score: 1, reason: 'All required sections present and in order' }
+          : { pass: false, score: 0, reason: `Sections present but out of order: ${headings.join(' -> ')}` };
+    # Infrastructure must be a SUBsection (###) inside Status Details, never a top-level ## section.
+    - type: javascript
+      value: |
+        const hasTopLevel = /^##\s+Infrastructure\s*$/m.test(output);
+        const hasSubsection = /^###\s+Infrastructure\s*$/m.test(output);
+        if (hasTopLevel) return { pass: false, score: 0, reason: 'Infrastructure rendered as a top-level ## section instead of a ### subsection' };
+        return hasSubsection
+          ? { pass: true, score: 1, reason: 'Infrastructure correctly rendered as a ### subsection' }
+          : { pass: false, score: 0, reason: 'No ### Infrastructure subsection found' };
+
+    # --- Criterion 2: badge vocabulary is closed and well-formed (deterministic) ---
+    # TWO separate closed vocabularies exist in house style: status badges, and the
+    # Risk-severity badges (red=High/orange=Medium/yellow=Low). A badge must match
+    # one of the two, with its class consistent with the word. A THIRD
+    # vocabulary covers Infrastructure items specifically: their badge is the
+    # bundle's own status_label (e.g. "Merged", "Awaiting Merge") rendered
+    # as-is per real house style (confirmed across every real report in
+    # 2026-status-reports/) — these are not remapped into the general list.
+    - type: javascript
+      value: |
+        const statusWords = {
+          green: ['Done', 'On Track', 'In Progress'],
+          gray: ['Not Started', 'Dropped'],
+          red: ['Blocked', 'Off Track'],
+          yellow: ['At Risk'],
+          paused: ['Paused'],
+          pending: ['Pending Updates'],
+        };
+        const riskWords = { red: ['High'], orange: ['Medium'], yellow: ['Low'] };
+        // Real house-style infrastructure status labels, always green per the
+        // project's own real reports (Merged, Awaiting Merge, and related PR/
+        // issue lifecycle states).
+        const infraWords = { green: ['Merged', 'Awaiting Merge', 'Submitted', 'In Review'] };
+        const spanRe = /<span class="(\w+)">([^<]+)<\/span>/g;
+        let m, bad = [];
+        while ((m = spanRe.exec(output)) !== null) {
+          const [, cls, wordRaw] = m;
+          const word = wordRaw.trim();
+          const okStatus = statusWords[cls] && statusWords[cls].includes(word);
+          const okRisk = riskWords[cls] && riskWords[cls].includes(word);
+          const okInfra = infraWords[cls] && infraWords[cls].includes(word);
+          if (!okStatus && !okRisk && !okInfra) bad.push(`class="${cls}">${word}`);
+        }
+        if (bad.length > 0) {
+          return { pass: false, score: 0, reason: `Invalid badge(s): ${bad.join(', ')}` };
+        }
+        return { pass: true, score: 1, reason: 'All badges use an approved vocabulary (status, risk-severity, or infrastructure) with a matching class' };
+    # No plain-text status words standing in for a badge.
+    - type: javascript
+      value: |
+        const banned = ['>Completed<', '>In Review<', '>Pending<', '>TODO<'];
+        const hit = banned.find(b => output.includes(b));
+        return hit
+          ? { pass: false, score: 0, reason: `Found plain-text status standing in for a badge: ${hit}` }
+          : { pass: true, score: 1, reason: 'No plain-text status words found' };
+
+    # --- Criterion 3: a DATED/released item uses Done/On Track, never In Progress (deterministic) ---
+    # The house-style rule is about an item that HAS A DATE (release version, ETA,
+    # merge date). The Sample Framework Adapter shipped as a completed project with
+    # release tag v2.1.0, so the line stating ITS completion (the one citing v2.1.0)
+    # must not be badged "In Progress". Scope to the line carrying the v2.1.0
+    # evidence specifically — NOT every line that merely name-drops the Adapter (a
+    # follow-up sprint task that references it can legitimately be in-flight).
+    - type: javascript
+      value: |
+        const lines = output.split('\n').filter(l => l.includes('v2.1.0'));
+        if (lines.length === 0) return { pass: false, score: 0, reason: 'Adapter completion evidence (v2.1.0) not cited anywhere' };
+        const bad = lines.filter(l => /<span class="\w+">In Progress<\/span>/.test(l));
+        return bad.length > 0
+          ? { pass: false, score: 0, reason: `A dated/released line (cites v2.1.0) is badged In Progress: "${bad[0].trim().slice(0,120)}"` }
+          : { pass: true, score: 1, reason: 'The dated v2.1.0 completion line is not badged In Progress' };
+
+    # --- Criterion 4: Not-Started sprint task excluded entirely (deterministic) ---
+    - type: not-contains
+      value: "Backlog-only idea, not started"
+    - type: not-contains
+      value: "SAMP-3"
+
+    # --- Criterion 5: dropped project mentioned with its REAL reason (deterministic substring + rubric for paraphrase fidelity) ---
+    - type: contains
+      value: "Sample Session Store"
+    - type: javascript
+      value: |
+        // Tolerate minor meaning-preserving phrasing (an added article/possessive,
+        // e.g. "the project's direction" vs "project direction") while still
+        // requiring the real substance — "not aligned" + "direction" — to survive,
+        // catching an actual paraphrase-away (e.g. "no longer needed").
+        const pass = /not\s+aligned\s+with\s+(the\s+)?project'?s?\s+direction/i.test(output);
+        return pass
+          ? { pass: true, score: 1, reason: 'Dropped reason text present' }
+          : { pass: false, score: 0, reason: 'Expected substance "not aligned with project(\'s) direction" not found anywhere in the output' };
+    - type: llm-rubric
+      value: >
+        The stated reason for dropping "Sample Session Store" is faithful to
+        "maintainers closed it as not aligned with project direction" — not
+        contradicted, not replaced with a vaguer placeholder like "no longer
+        needed". FAIL if the report's stated reason contradicts or omits the
+        substance of that reason.
+
+    # --- Criterion 6: Infrastructure rendered as bullets, not a table (deterministic) ---
+    - type: javascript
+      value: |
+        const parts = output.split(/^###\s+Infrastructure\s*$/m);
+        if (parts.length < 2) return { pass: false, score: 0, reason: 'No ### Infrastructure subsection to check' };
+        const section = parts[1].split(/\n##?\s/)[0]; // up to the next heading of any level
+        const hasTableRow = /^\s*\|.*\|.*\|/m.test(section);
+        return hasTableRow
+          ? { pass: false, score: 0, reason: 'Infrastructure section contains a markdown table (pipe-delimited row)' }
+          : { pass: true, score: 1, reason: 'Infrastructure section has no markdown table' };
+    - type: contains
+      value: "pull/121"
+    - type: contains
+      value: "pull/101"
+
+    # --- Criterion 7: Staffing has no personal names (rubric — requires knowing what a name is) ---
+    - type: llm-rubric
+      value: >
+        The Staffing section (## Staffing) reports counts/role information
+        only (e.g. "X of Y developers") and contains NO specific individual's
+        name. FAIL if any person's name appears in that section.
+
+    # --- Criterion 8: no leftover placeholders (deterministic) + no meta-
+    # commentary before the report starts (rubric — "is this sentence about
+    # the task, not report content" needs reading comprehension, not a list
+    # of forbidden phrases; chasing specific wordings here is a losing game,
+    # since there's always another way to phrase the same kind of narration) ---
+    - type: not-contains
+      value: "TBD"
+    - type: not-contains
+      value: "Lorem ipsum"
+    - type: not-contains
+      value: "<INSERT"
+    - type: llm-rubric
+      value: >
+        The output's very first line is the report's own H1 title (starting
+        with a single `#`), and nothing before or glued onto it describes the
+        writer's own process — no narration of file paths, what it's about to
+        do, how it resolved an input, or any other sentence ABOUT the task
+        rather than being report content itself. FAIL if any such
+        process-narration sentence appears anywhere before or within the
+        opening heading, regardless of how it's phrased.
+
+    # --- Criterion 9: prior-report risks/dependencies carry forward (deterministic) ---
+    # The whole point of giving compile the prior report: a narrative entry
+    # that lives ONLY in last week's report (no backing row in bundle.json)
+    # must survive into this week's report, not get rewritten away. The
+    # fixture's prior report carries a Low "Sample Risk" and a Dependencies
+    # note, and bundle.json mentions NEITHER — so if either is missing from
+    # the output, compile rebuilt the section from the bundle instead of
+    # carrying the prior forward (the exact information-loss defect this
+    # guards). The prior Staffing contract line must likewise survive.
+    - type: javascript
+      value: |
+        const prior = [
+          { label: 'carry-over Risk',       re: /Sample Risk/ },
+          { label: 'carry-over Dependency', re: /dependency note that should carry forward/i },
+          { label: 'Staffing contract line', re: /[Cc]ontract until December 31, 2099/ },
+        ];
+        const dropped = prior.filter(p => !p.re.test(output)).map(p => p.label);
+        return dropped.length === 0
+          ? { pass: true, score: 1, reason: 'All prior-report-only risks/dependencies/staffing carried forward' }
+          : { pass: false, score: 0, reason: `Prior-report entry dropped (section rebuilt from bundle instead of carried forward): ${dropped.join(', ')}` };

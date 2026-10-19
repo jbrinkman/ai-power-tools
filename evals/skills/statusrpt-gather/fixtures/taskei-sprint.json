@@ -1,0 +1,17 @@
+{
+  "_comment": "SAMPLE / SYNTHETIC Taskei current-sprint fetch output. All fabricated. Includes a Not Started item that GATHER must still include in the bundle verbatim -- the exclusion rule belongs to statusrpt-compile, not gather.",
+  "sprint": "Sample Sprint 99",
+  "tasks": [
+    { "shortId": "SAMP-1", "name": "Ship Sample Framework Adapter", "status": "Open",
+      "workflowAction": "In Review", "assignee": "dana",
+      "pr": "https://github.com/sample-org/sample-framework/pull/30",
+      "section": "Framework Integrations" },
+    { "shortId": "SAMP-2", "name": "Sample Multi-Part Feature rollout", "status": "Open",
+      "workflowAction": "In Progress", "assignee": "riley",
+      "pr": "https://github.com/sample-org/multi-part/pull/10",
+      "section": "Framework Integrations" },
+    { "shortId": "SAMP-3", "name": "Backlog-only idea, not started", "status": "Open",
+      "workflowAction": "Not Started", "assignee": null,
+      "section": "Ecosystem Expansion" }
+  ]
+}

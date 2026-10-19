@@ -1,7 +1,15 @@
 version: "3"
 
+# CONFIG selects the provider-specific Promptfoo config. Defaults to Kiro;
+# override per run, e.g.:
+#   task eval:all CONFIG=promptfooconfig.devin.yaml
+# or use the :kiro / :devin convenience aliases below.
 vars:
-  GH_MOCK_LOG_FILE: tmp/promptfoo-gh-mock.log
+  # Absolute, so a skill that `cd`s elsewhere (e.g. into a destination repo
+  # root under tmp/) still resolves this to the SAME file the assertions read
+  # — a relative path here previously split into two different log files.
+  GH_MOCK_LOG_FILE: "{{.TASKFILE_DIR}}/tmp/promptfoo-gh-mock.log"
+  CONFIG: '{{.CONFIG | default "promptfooconfig.kiro.yaml"}}'
 
 tasks:
   default:
@@ -10,22 +18,94 @@ tasks:
       - task --list
 
   eval:github-issue-creator:
-    desc: Evaluate the github-issue-creator skill
+    desc: Evaluate the github-issue-creator skill (CONFIG=... to pick provider)
     cmds:
       - "mkdir -p tmp"
       - "rm -f {{.GH_MOCK_LOG_FILE}}"
-      - "npx promptfoo eval --no-cache --config promptfooconfig.yaml --filter-metadata skill=github-issue-creator --delay 0"
+      - "npx promptfoo eval --no-cache --config {{.CONFIG}} --filter-metadata skill=github-issue-creator --delay 0"
     env:
       GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
 
-  eval:all:
-    desc: Evaluate all skills
+  eval:sr-pr-tables:
+    desc: Evaluate the statusrpt-pr-tables skill (seeds a fresh run.db first)
+    vars:
+      PRT_DIR: skills/statusrpt-pr-tables/fixtures
     cmds:
       - "mkdir -p tmp"
       - "rm -f {{.GH_MOCK_LOG_FILE}}"
-      - "npx promptfoo eval --no-cache --config promptfooconfig.yaml --delay 0"
+      # Seed a fresh DB from schema + seed data before the one reconciliation run.
+      - "rm -f {{.PRT_DIR}}/run.db"
+      - "sqlite3 {{.PRT_DIR}}/run.db < {{.PRT_DIR}}/schema.sql"
+      - "sqlite3 {{.PRT_DIR}}/run.db < {{.PRT_DIR}}/seed.sql"
+      - "npx promptfoo eval --no-cache --config {{.CONFIG}} --filter-metadata skill=statusrpt-pr-tables --delay 0"
     env:
       GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
+
+  eval:sr-gather:
+    desc: Evaluate the statusrpt-gather skill (seeds a fresh run.db first)
+    vars:
+      GATHER_DIR: skills/statusrpt-gather/fixtures
+    cmds:
+      - "mkdir -p tmp"
+      - "rm -f {{.GH_MOCK_LOG_FILE}}"
+      - "rm -f {{.GATHER_DIR}}/run.db"
+      - "sqlite3 {{.GATHER_DIR}}/run.db < {{.GATHER_DIR}}/schema.sql"
+      - "sqlite3 {{.GATHER_DIR}}/run.db < {{.GATHER_DIR}}/reconciled-seed.sql"
+      - "npx promptfoo eval --no-cache --config {{.CONFIG}} --filter-metadata skill=statusrpt-gather --delay 0"
+    env:
+      GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
+
+  eval:sr-compile:
+    desc: Evaluate the statusrpt-compile skill
+    cmds:
+      - "mkdir -p tmp"
+      - "rm -f {{.GH_MOCK_LOG_FILE}}"
+      - "npx promptfoo eval --no-cache --config {{.CONFIG}} --filter-metadata skill=statusrpt-compile --delay 0"
+    env:
+      GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
+
+  eval:sr-publish:
+    desc: Evaluate the statusrpt-publish skill (per-test isolated logs + scratch repos)
+    cmds:
+      - "mkdir -p tmp"
+      - "rm -f tmp/sr-publish-full.log tmp/sr-publish-pr-exists.log tmp/sr-publish-gpg-fail.log"
+      # Fresh scratch "destination repo" per test case — git is mocked, so
+      # these only need to exist as writable trees. Separate dirs (and
+      # separate mock logs, via each test's `logFile` var) because the 3
+      # test cases run concurrently and must not see each other's commands.
+      - "rm -rf tmp/publish-dest-full tmp/publish-dest-pr-exists tmp/publish-dest-gpg-fail"
+      - "mkdir -p tmp/publish-dest-full/2099-status-reports"
+      - "mkdir -p tmp/publish-dest-pr-exists/2099-status-reports"
+      - "mkdir -p tmp/publish-dest-gpg-fail/2099-status-reports"
+      - "npx promptfoo eval --no-cache --config {{.CONFIG}} --filter-metadata skill=statusrpt-publish --delay 0"
+
+  eval:sr-all:
+    desc: Evaluate all statusrpt-* (sr-*) skills in sequence (pr-tables, gather, compile, publish)
+    cmds:
+      - "task eval:sr-pr-tables CONFIG={{.CONFIG}}"
+      - "task eval:sr-gather CONFIG={{.CONFIG}}"
+      - "task eval:sr-compile CONFIG={{.CONFIG}}"
+      - "task eval:sr-publish CONFIG={{.CONFIG}}"
+
+  eval:all:
+    desc: Evaluate all skills (CONFIG=... to pick provider)
+    cmds:
+      - "mkdir -p tmp"
+      - "rm -f {{.GH_MOCK_LOG_FILE}}"
+      - "npx promptfoo eval --no-cache --config {{.CONFIG}} --delay 0"
+    env:
+      GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
+
+  # Convenience aliases: run the full suite through a specific provider.
+  eval:all:devin:
+    desc: Evaluate all skills through the Devin provider
+    cmds:
+      - "task eval:all CONFIG=promptfooconfig.devin.yaml"
+
+  eval:all:kiro:
+    desc: Evaluate all skills through the Kiro provider
+    cmds:
+      - "task eval:all CONFIG=promptfooconfig.kiro.yaml"
 
   view:
     desc: Open the Promptfoo dashboard with all evaluation history

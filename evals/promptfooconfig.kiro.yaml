@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+# Kiro-provider Promptfoo config for evaluating ai-power-tools skills.
+# Identical to the Devin config except for the provider/grader it runs through.
+# Shared pieces (prompt shape, per-skill tests, defaults) are kept in sync with
+# promptfooconfig.devin.yaml; only the provider block differs.
+
+description: ai-power-tools skills evaluation framework (Kiro)
+
+# The prompt loads the skill file and appends the user request.
+prompts:
+  - "@{{skillFile}}\n\n## User Request\n\n{{request}}"
+
+# Default test vars and grader configuration used for all tests.
+defaultTest:
+  vars:
+    skillFile: ../../skills/github-issue-creator/SKILL.md
+    expectedRepo: test-org/test-repo
+  options:
+    provider: "exec: node ./providers/kiro.js"
+    config:
+      model: "claude-sonnet-5.5"
+
+# Target provider that executes the skill.
+providers:
+  - id: "exec: node ./providers/kiro.js"
+    label: "Kiro claude-sonnet-5.5"
+    config:
+      model: "claude-sonnet-5.5"
+
+# Per-skill test files. Keep this list identical to promptfooconfig.devin.yaml.
+tests:
+  - file://skills/github-issue-creator/tests.yaml
+  - file://skills/statusrpt-pr-tables/tests.yaml
+  - file://skills/statusrpt-gather/tests.yaml
+  - file://skills/statusrpt-compile/tests.yaml
+  - file://skills/statusrpt-publish/tests.yaml
+
+outputPath: results.html

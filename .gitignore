@@ -1,1 +1,11 @@
 .DS_Store
+
+# aim auto-injects .kiro/agents/*.json into kiro-cli agent configs on every
+# launch; this project uses no AWS creds via aim and doesn't want that churn
+# version-controlled.
+.kiro/
+
+# Scratch/debug output that should never land at repo root (evals/ has its
+# own scoped tmp/ already gitignored under evals/.gitignore).
+/tmp/
+

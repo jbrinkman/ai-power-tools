@@ -3,7 +3,20 @@
 # This script intercepts gh commands and returns scenario-driven responses.
 # It logs every invocation so JavaScript assertions can verify tool usage.
 
-LOG_FILE="${GH_MOCK_LOG_FILE:-$(dirname "$0")/../tmp/promptfoo-gh-mock.log}"
+# Per-test isolated log file (PROMPTFOO_VAR_logFile, forwarded by the
+# provider from the test's `logFile` var) takes priority over the shared
+# default — concurrent test cases must not read or write each other's
+# command history. A relative PROMPTFOO_VAR_logFile is resolved against this
+# script's own directory (evals/mocks), NOT the process cwd, because the
+# skill under test may `cd` into a different scratch dest before running git.
+if [[ -n "${PROMPTFOO_VAR_logFile:-}" ]]; then
+  case "$PROMPTFOO_VAR_logFile" in
+    /*) LOG_FILE="$PROMPTFOO_VAR_logFile" ;;
+    *) LOG_FILE="$(cd "$(dirname "$0")" && pwd)/../${PROMPTFOO_VAR_logFile}" ;;
+  esac
+else
+  LOG_FILE="${GH_MOCK_LOG_FILE:-$(dirname "$0")/../tmp/promptfoo-gh-mock.log}"
+fi
 mkdir -p "$(dirname "$LOG_FILE")"
 
 # Log the command (timestamp, args, and relevant env vars).
@@ -123,6 +136,26 @@ case "$1" in
     if [[ "$*" == *"milestones"* ]]; then
       echo "v1.0.0"
       echo "v1.1.0"
+      exit 0
+    fi
+    ;;
+
+  pr)
+    if [[ "$2" == "list" ]]; then
+      if [[ "$scenario" == "pr-exists" ]]; then
+        echo '[{"number":202,"url":"https://github.com/test-org/test-repo/pull/202"}]'
+      else
+        echo '[]'
+      fi
+      exit 0
+    fi
+
+    if [[ "$2" == "create" ]]; then
+      if [[ "$scenario" == "pr-exists" ]]; then
+        echo "a pull request for branch \"elasticache-agentic-status-2099-01-12\" into branch \"main\" already exists" >&2
+        exit 1
+      fi
+      echo "https://github.com/test-org/test-repo/pull/203"
       exit 0
     fi
     ;;

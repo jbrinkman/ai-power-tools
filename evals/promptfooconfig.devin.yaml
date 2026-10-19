@@ -1,11 +1,12 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
-# Master Promptfoo config for evaluating ai-power-tools skills.
-# This config loads a skill file dynamically and runs per-skill test suites.
+# Devin-provider Promptfoo config for evaluating ai-power-tools skills.
+# Identical to the Kiro config except for the provider/grader it runs through.
+# Shared pieces (prompt shape, per-skill tests, defaults) are kept in sync with
+# promptfooconfig.kiro.yaml; only the provider block differs.
 
-description: ai-power-tools skills evaluation framework
+description: ai-power-tools skills evaluation framework (Devin)
 
 # The prompt loads the skill file and appends the user request.
-# The skillFile variable is set per skill in the imported test file.
 prompts:
   - "@{{skillFile}}\n\n## User Request\n\n{{request}}"
 
@@ -26,9 +27,12 @@ providers:
     config:
       model: "claude-sonnet-4.6"
 
-# Per-skill test files are imported here. Add new skills by adding their
-# tests.yaml file below.
+# Per-skill test files. Keep this list identical to promptfooconfig.kiro.yaml.
 tests:
   - file://skills/github-issue-creator/tests.yaml
+  - file://skills/statusrpt-pr-tables/tests.yaml
+  - file://skills/statusrpt-gather/tests.yaml
+  - file://skills/statusrpt-compile/tests.yaml
+  - file://skills/statusrpt-publish/tests.yaml
 
 outputPath: results.html

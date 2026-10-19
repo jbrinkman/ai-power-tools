@@ -1,0 +1,74 @@
+{
+  "_comment": "SAMPLE / SYNTHETIC mocked `gh api` responses keyed by '<owner>/<repo>#<n>'. Shape mirrors what statusrpt-pr-tables would retrieve live. All fabricated.",
+
+  "sample-org/sample-framework#30": {
+    "state": "closed", "merged": true, "merged_at": "2099-01-08T10:00:00Z",
+    "releases": [
+      { "tag_name": "v2.1.0", "published_at": "2099-01-09T00:00:00Z",
+        "html_url": "https://github.com/sample-org/sample-framework/releases/tag/v2.1.0",
+        "body": "Adds the sample framework adapter (#30). First release to include it." }
+    ],
+    "_expect": "P1: merged + release v2.1.0 body names #30 -> completed, completion_evidence_kind=release-tag, release_confirmed=1"
+  },
+
+  "sample-org/demo-cli#40": {
+    "state": "closed", "merged": false, "closed_at": "2099-01-07T12:00:00Z",
+    "closed_comments": [
+      { "user": "maintainer-bot", "body": "Closing -- this is being continued in #41." }
+    ],
+    "successor": "sample-org/demo-cli#41",
+    "_expect": "P2: closed-superseded by open #41 -> stay submitted, successor_* set, link repointed to #41"
+  },
+  "sample-org/demo-cli#41": { "state": "open", "merged": false },
+
+  "sample-org/sample-session#50": {
+    "state": "closed", "merged": false, "closed_at": "2099-01-06T09:00:00Z",
+    "closed_comments": [
+      { "user": "maintainer", "body": "We won't accept third-party stores. Not aligned with the project direction." }
+    ],
+    "_expect": "P3: closed-rejected -> dropped, dropped_reason citing the rejection"
+  },
+
+  "sample-org/sample-search#20": {
+    "state": "closed", "merged": true, "merged_at": "2098-12-20T00:00:00Z",
+    "releases": [
+      { "tag_name": "v3.0.0", "published_at": "2099-01-04T00:00:00Z",
+        "html_url": "https://github.com/sample-org/sample-search/releases/tag/v3.0.0",
+        "body": "Release notes with no mention of the aggregate function PR." }
+    ],
+    "_expect": "P4: release exists but body does NOT reference #20 -> stays merged, release_confirmed=0, NOT promoted"
+  },
+
+  "sample-org/sample-site#60": {
+    "state": "closed", "merged": true, "merged_at": "2099-01-03T00:00:00Z",
+    "releases": [],
+    "website_check": { "url": "https://sample-site.example.com/clients", "found": true,
+      "evidence": "The 'Sample Backend' entry is live on the clients page as of 2099-01-10." },
+    "_expect": "P5: no release, but a website check confirms the content shipped -> completed, completion_evidence_kind=website-update, completion_evidence quotes the check"
+  },
+
+  "sample-org/sample-beta#70": {
+    "state": "closed", "merged": true, "merged_at": "2099-01-04T00:00:00Z",
+    "releases": [
+      { "tag_name": "v0.9.0-beta", "published_at": "2099-01-05T00:00:00Z",
+        "html_url": "https://github.com/sample-org/sample-beta/releases/tag/v0.9.0-beta",
+        "body": "Beta release including PR #70." }
+    ],
+    "_expect": "P6: only a beta release exists, but project_conventions has always-beta -> completed, completion_evidence_kind=beta-release, NOT flagged unconfirmed"
+  },
+
+  "sample-org/tf-provider#101": { "state": "open", "merged": false, "_expect": "I1: unchanged" },
+  "sample-org/tf-provider#111": { "state": "closed", "merged": true, "merged_at": "2098-12-28T00:00:00Z", "releases": [], "_expect": "I2: already resolved prior week -> removed this week, not re-processed" },
+  "sample-org/tf-provider#121": { "state": "closed", "merged": true, "merged_at": "2099-01-08T00:00:00Z", "releases": [], "_expect": "I3: newly merged -> relabel Merged, is_new=1, KEEP" },
+  "sample-org/tf-provider#130": { "state": "open", "merged": false, "_expect": "New infra PR from the tracker, not yet in infrastructure_items -> ADD as a new row" },
+
+  "sample-org/already-shipped#80": {
+    "state": "closed", "merged": true, "merged_at": "2099-01-02T00:00:00Z",
+    "releases": [
+      { "tag_name": "v1.0.0", "published_at": "2099-01-03T00:00:00Z",
+        "html_url": "https://github.com/sample-org/already-shipped/releases/tag/v1.0.0",
+        "body": "Includes the already-shipped feature (#80)." }
+    ],
+    "_expect": "ORDERING CHECK: this project is brand-new via Confluence intake AND already merged+released. It must be promoted to completed in THIS SAME RUN -- only possible if intake (Step 2) ran before the PR-state scan (Steps 3-5). If intake ran last, this would still be 'submitted' at the end of the run."
+  }
+}

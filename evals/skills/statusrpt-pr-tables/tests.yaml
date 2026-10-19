@@ -1,0 +1,232 @@
+# Per-skill EDD eval suite for statusrpt-pr-tables.
+#
+# This skill reconciles the elasticache-agentic-status SQLite DB against live
+# GitHub + Confluence state. Its output is DATABASE ROWS AND AUDIT EVENTS, not
+# report text, so assertions here are `dbQuery` (run SQL against the post-run
+# DB, compare a scalar) rather than text matching.
+#
+# IMPORTANT SHAPE: reconciliation is ONE unit of work over the WHOLE seeded DB,
+# not an independently-repeatable fact per test case -- a second concurrent
+# "reconcile everything" invocation against the same shared run.db would race
+# and double-apply changes. So this is deliberately ONE promptfoo test case
+# with MANY assertions (>= 3 distinct criteria, satisfying Stage 3 §2), each
+# checking a different, independent fact about the single resulting DB state.
+#
+# Test flow: `task eval:statusrpt-pr-tables` copies fixtures/seed.sql on top of
+# a fresh schema into fixtures/run.db BEFORE invoking promptfoo, so the one
+# test run reconciles that known starting state exactly once.
+#
+# skillFile/fixturesDir/dbPath are set in vars (provider configs default
+# skillFile to github-issue-creator). Written RED: SKILL.md does not exist yet.
+
+- description: >
+    Full reconciliation run against the seeded DB: release-confirmed promotion,
+    superseded-link repoint, rejected-to-dropped, release-not-confirmed stays
+    merged, non-release completion evidence, project_conventions respected,
+    infrastructure lifecycle (relabel+keep / remove / add), Confluence multi-row
+    and multi-PR intake, and the audit trail -- 10 distinct criteria.
+  metadata:
+    skill: statusrpt-pr-tables
+  vars:
+    skillFile: ../../skills/statusrpt-pr-tables/SKILL.md
+    fixturesDir: skills/statusrpt-pr-tables/fixtures
+    dbPath: skills/statusrpt-pr-tables/fixtures/run.db
+    request: >
+      Reconcile the database at {{dbPath}} against the live GitHub state in
+      {{fixturesDir}}/gh-api-responses.json and the Confluence tracker in
+      {{fixturesDir}}/confluence-tracker.html.
+
+      Rules: only promote a merged PR to completed when you have confirming
+      evidence it shipped -- a release whose own notes reference the PR number,
+      OR another artifact (a website update, a CD pipeline run, an npm publish)
+      when no release exists. Check project_conventions for a project before
+      judging whether evidence is sufficient -- a recorded exception (e.g.
+      always-beta) can make otherwise-unconfirmed evidence sufficient. A closed,
+      unmerged PR needs its close reason read from comments and classified as
+      merged-elsewhere, superseded, rejected, or ambiguous; a superseded PR's
+      link should repoint to its open successor; a rejected PR moves to dropped
+      with a reason. The Confluence tracker is the leading edge for new work --
+      a brand-new project can appear there as ONE row or split across SEVERAL
+      rows, and a single row can list more than one PR; link every PR you find
+      to the correct single project rather than creating duplicates.
+      Infrastructure items already labeled Merged/Closed from a prior week
+      should be removed; a newly-merged/closed item should be relabeled, marked
+      new, and kept this week; a tracker PR not yet in infrastructure_items
+      should be added. Record a reconciliation_runs row for this run and a
+      reconciliation_events row for every change you make.
+  assert:
+    # Criterion 1 — release-confirmed promotion
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C1 Sample Framework Adapter -> completed"
+        query: "SELECT bucket FROM projects WHERE name = 'Sample Framework Adapter';"
+        expected: "completed"
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C1 PR#30 release_confirmed=1"
+        query: "SELECT release_confirmed FROM pull_requests WHERE owner='sample-org' AND repo='sample-framework' AND number=30;"
+        expected: "1"
+
+    # Criterion 2 — superseded link repoint, stays submitted
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C2 Demo CLI stays submitted"
+        query: "SELECT bucket FROM projects WHERE name = 'Demo CLI';"
+        expected: "submitted"
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C2 Demo CLI linked to successor PR 41"
+        query: >
+          SELECT COUNT(*) FROM projects p
+          JOIN project_pull_requests ppr ON ppr.project_id = p.id
+          JOIN pull_requests pr ON pr.id = ppr.pull_request_id
+          WHERE p.name = 'Demo CLI' AND pr.number = 41;
+        expected: "1"
+
+    # Criterion 3 — rejected PR moves to dropped with a reason
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C3 Sample Session Store -> dropped"
+        query: "SELECT bucket FROM projects WHERE name = 'Sample Session Store';"
+        expected: "dropped"
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C3 Sample Session Store has a non-empty dropped_reason"
+        query: "SELECT CASE WHEN dropped_reason IS NOT NULL AND length(dropped_reason) > 0 THEN 'yes' ELSE 'no' END FROM projects WHERE name = 'Sample Session Store';"
+        expected: "yes"
+
+    # Criterion 4 — unconfirmed release does NOT promote
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C4 Sample Aggregate Func stays merged"
+        query: "SELECT bucket FROM projects WHERE name = 'Sample Aggregate Func';"
+        expected: "merged"
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C4 PR#20 release_confirmed=0"
+        query: "SELECT release_confirmed FROM pull_requests WHERE owner='sample-org' AND repo='sample-search' AND number=20;"
+        expected: "0"
+
+    # Criterion 5 — non-release completion evidence (website update)
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C5 Sample Website Page -> completed"
+        query: "SELECT bucket FROM projects WHERE name = 'Sample Website Page';"
+        expected: "completed"
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C5 completion_evidence_kind = website-update"
+        query: "SELECT completion_evidence_kind FROM projects WHERE name = 'Sample Website Page';"
+        expected: "website-update"
+
+    # Criterion 6 — project_conventions (always-beta) respected
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C6 Sample Beta Project -> completed"
+        query: "SELECT bucket FROM projects WHERE name = 'Sample Beta Project';"
+        expected: "completed"
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C6 completion_evidence_kind = beta-release"
+        query: "SELECT completion_evidence_kind FROM projects WHERE name = 'Sample Beta Project';"
+        expected: "beta-release"
+
+    # Criterion 7 — infrastructure lifecycle: relabel+keep / remove / add
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C7 PR#121 relabeled Merged and marked new"
+        query: "SELECT status_label || ':' || is_new FROM infrastructure_items WHERE pr_number = 121;"
+        expected: "Merged:1"
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C7 PR#111 (prior-week-merged) removed"
+        query: "SELECT COUNT(*) FROM infrastructure_items WHERE pr_number = 111;"
+        expected: "0"
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C7 PR#130 added as a new infrastructure item"
+        query: "SELECT COUNT(*) FROM infrastructure_items WHERE pr_number = 130;"
+        expected: "1"
+
+    # Criterion 8 — Confluence multi-row intake (one project, two rows, two PRs)
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C8 exactly one 'Brand New Integration' project (not duplicated per row)"
+        query: "SELECT COUNT(*) FROM projects WHERE name = 'Brand New Integration';"
+        expected: "1"
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C8 Brand New Integration has both PR 5 and PR 2 linked"
+        query: >
+          SELECT COUNT(*) FROM projects p
+          JOIN project_pull_requests ppr ON ppr.project_id = p.id
+          JOIN pull_requests pr ON pr.id = ppr.pull_request_id
+          WHERE p.name = 'Brand New Integration' AND pr.number IN (5, 2);
+        expected: "2"
+
+    # Criterion 9 — Confluence multi-PR-per-row intake
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C9 Sample Multi-Part Feature has both PR 10 and PR 11 linked"
+        query: >
+          SELECT COUNT(*) FROM projects p
+          JOIN project_pull_requests ppr ON ppr.project_id = p.id
+          JOIN pull_requests pr ON pr.id = ppr.pull_request_id
+          WHERE p.name = 'Sample Multi-Part Feature' AND pr.number IN (10, 11);
+        expected: "2"
+
+    # Criterion 10 — audit trail
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C10 at least one reconciliation_runs row exists"
+        query: "SELECT CASE WHEN COUNT(*) > 0 THEN 'yes' ELSE 'no' END FROM reconciliation_runs;"
+        expected: "yes"
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C10 at least 5 reconciliation_events rows exist"
+        query: "SELECT CASE WHEN COUNT(*) >= 5 THEN 'yes' ELSE 'no' END FROM reconciliation_events;"
+        expected: "yes"
+
+    # Criterion 11 — events are mechanically reversible (rollback capability)
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C11 every event carries old_value or new_value (reversible)"
+        query: "SELECT CASE WHEN COUNT(*) = 0 THEN 'yes' ELSE 'no' END FROM reconciliation_events WHERE old_value IS NULL AND new_value IS NULL;"
+        expected: "yes"
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C11 the run recorded a pre-run snapshot_path"
+        query: "SELECT CASE WHEN snapshot_path IS NOT NULL AND length(snapshot_path) > 0 THEN 'yes' ELSE 'no' END FROM reconciliation_runs ORDER BY id DESC LIMIT 1;"
+        expected: "yes"
+
+    # Criterion 12 — ORDERING: a brand-new tracker project already merged+released
+    # must reach 'completed' in THIS run, not just 'submitted' — only possible if
+    # Confluence intake (new projects/PRs) runs BEFORE the PR-state scan.
+    - type: javascript
+      value: file://assertions/dbQuery.js
+      config:
+        label: "C12 Sample Already-Shipped Feature reaches completed in this same run"
+        query: "SELECT bucket FROM projects WHERE name = 'Sample Already-Shipped Feature';"
+        expected: "completed"

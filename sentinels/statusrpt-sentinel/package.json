@@ -1,0 +1,10 @@
+{
+  "name": "statusrpt-sentinel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deterministic structural gate for the statusrpt-* weekly status report workflow. Plain code, no LLM.",
+  "main": "sentinel.js",
+  "scripts": {
+    "test": "node --test"
+  }
+}

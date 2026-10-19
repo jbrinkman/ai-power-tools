@@ -1,0 +1,107 @@
+#!/bin/bash
+# Mock git CLI for testing the statusrpt-publish skill.
+#
+# CLOSED ALLOWLIST, deliberately: statusrpt-publish is specced to run exactly
+# one fixed command sequence (optional rev-parse pre-flight -> checkout main
+# -> pull -> checkout -b -> add -> commit [-> --no-gpg-sign retry] -> push).
+# This mock recognizes ONLY that sequence (plus the documented existing-branch
+# checkout fallback) and fails loudly on anything else — including read-only
+# inspection commands like `status`/`remote -v`/other `rev-parse` forms. That
+# is a feature, not a gap: if the skill starts probing the repo beyond its
+# named pre-flight check, the eval must catch it, not quietly accommodate it.
+#
+# Shares the log file with the gh mock (GH_MOCK_LOG_FILE, or the per-test
+# PROMPTFOO_VAR_logFile override) so one assertion helper can scan the
+# combined command log.
+
+# Per-test isolated log file (PROMPTFOO_VAR_logFile, forwarded by the
+# provider from the test's `logFile` var) takes priority over the shared
+# default — concurrent test cases must not read or write each other's
+# command history.
+# Per-test isolated log file (PROMPTFOO_VAR_logFile, forwarded by the
+# provider from the test's `logFile` var) takes priority over the shared
+# default — concurrent test cases must not read or write each other's
+# command history. A relative PROMPTFOO_VAR_logFile is resolved against this
+# script's own directory (evals/mocks), NOT the process cwd, because the
+# skill under test may `cd` into a different scratch dest before running git.
+if [[ -n "${PROMPTFOO_VAR_logFile:-}" ]]; then
+  case "$PROMPTFOO_VAR_logFile" in
+    /*) LOG_FILE="$PROMPTFOO_VAR_logFile" ;;
+    *) LOG_FILE="$(cd "$(dirname "$0")" && pwd)/../${PROMPTFOO_VAR_logFile}" ;;
+  esac
+else
+  LOG_FILE="${GH_MOCK_LOG_FILE:-$(dirname "$0")/../tmp/promptfoo-gh-mock.log}"
+fi
+mkdir -p "$(dirname "$LOG_FILE")"
+
+{
+  echo "---"
+  date -u +"%Y-%m-%dT%H:%M:%SZ"
+  echo "git-args: $*"
+  echo "scenario: ${PROMPTFOO_VAR_scenario:-default}"
+} >> "$LOG_FILE"
+
+scenario="${PROMPTFOO_VAR_scenario:-default}"
+args="$*"
+
+case "$1" in
+  rev-parse)
+    # Named pre-flight check only (skill's Allowed Commands item 0).
+    if [[ "$args" == *"--is-inside-work-tree"* ]]; then
+      echo "true"
+      exit 0
+    fi
+    ;;
+
+  checkout)
+    if [[ "$2" == "main" ]]; then
+      exit 0
+    fi
+    if [[ "$2" == "-b" ]]; then
+      exit 0
+    fi
+    # Named existing-branch fallback (git checkout <branch>, no -b).
+    if [[ "$2" == elasticache-agentic-status-* ]]; then
+      exit 0
+    fi
+    ;;
+
+  pull)
+    echo "Already up to date."
+    exit 0
+    ;;
+
+  add)
+    exit 0
+    ;;
+
+  commit)
+    if [[ "$scenario" == "gpg-fail" && "$args" != *"--no-gpg-sign"* ]]; then
+      echo "error: gpg failed to sign the data" >&2
+      echo "fatal: failed to write commit object" >&2
+      exit 1
+    fi
+    echo "[elasticache-agentic-status-2099-01-12 abc1234] docs: add status report for 2099-01-12"
+    echo " 1 file changed, 1 insertion(+)"
+    exit 0
+    ;;
+
+  push)
+    if [[ "$args" == *"--force"* || "$args" == *" -f"* ]]; then
+      echo "mock git: refusing force push: $args" >&2
+      exit 1
+    fi
+    if [[ "$args" != *"-u origin elasticache-agentic-status-"* ]]; then
+      echo "mock git: push must name the feature branch explicitly: $args" >&2
+      exit 1
+    fi
+    exit 0
+    ;;
+esac
+
+# Anything outside the allowlist (status, remote, other rev-parse forms,
+# log, fetch, diff, show, ls-files, config, ...) is a skill defect, not a
+# harness gap.
+echo "mock git: command not in statusrpt-publish's allowed sequence: $*" >&2
+echo "mock git: command not in statusrpt-publish's allowed sequence: $*" >> "$LOG_FILE"
+exit 1
