@@ -63,7 +63,18 @@ if (!isGraderMode) {
   Object.entries(testVars).forEach(([key, value]) => {
     env[`PROMPTFOO_VAR_${key}`] = String(value);
   });
+  // For MCP-backed skills (e.g. taskei-issue-creator), a test selects the
+  // `taskei-mock` workspace agent via its `agent` var. That agent config
+  // (evals/.kiro/agents/taskei-mock.json) sets includeMcpJson:false and points
+  // its builder-mcp server at the mock stdio server (evals/mocks/builder-mcp,
+  // via a relative command path resolved from the eval cwd), so the skill's
+  // Taskei tool calls hit the mock instead of the real backend — the MCP
+  // analogue of the PATH-shadowed gh/git CLI mocks.
 }
+
+// A test may request a specific kiro-cli agent (workspace agents are
+// discovered from evals/.kiro/agents when the provider runs with evals/ as cwd).
+const agentName = (!isGraderMode && testVars.agent) ? String(testVars.agent) : null;
 
 if (isGraderMode) {
   // ===== GRADER MODE =====
@@ -122,6 +133,11 @@ if (isGraderMode) {
   const args = ['chat', '--no-interactive', '--trust-all-tools', prompt];
   if (model) {
     args.push('--model', model);
+  }
+  // When a test selects an MCP-mock agent (e.g. taskei-mock), run under it so
+  // the skill's MCP tool calls hit the mock builder-mcp server.
+  if (agentName) {
+    args.push('--agent', agentName);
   }
 
   const result = spawnSync('kiro-cli', args, {

@@ -1,0 +1,197 @@
+# Per-skill test cases for taskei-issue-creator.
+#
+# Unlike the gh/git-backed skills, this skill writes through MCP tools
+# (TaskeiCreateTask etc.), not a CLI binary. These tests run under the
+# `taskei-mock` workspace agent (evals/.kiro/agents/taskei-mock.json), which
+# sets includeMcpJson:false and points its builder-mcp server at the mock
+# stdio server (evals/mocks/builder-mcp). The mock serves deterministic room/
+# resource/task fixtures and LOGS every tools/call so taskeiToolCalled.js can
+# assert which Taskei tools ran with which arguments — the MCP analogue of the
+# gh/git mock + ghCommandCalled.js pattern.
+#
+# `agent: taskei-mock` selects that agent (the Kiro provider passes --agent and
+# sets TASKEI_MOCK_SERVER). The mock is a CLOSED ALLOWLIST: an off-allowlist
+# tool returns an isError naming the offending tool, so a stray call surfaces.
+#
+# ISOLATION: these cases run CONCURRENTLY, so each sets its OWN `logFile` (the
+# mock's per-test command log) to avoid cross-contaminating absence checks
+# (e.g. a create test's TaskeiCreateTask leaking into an update test's
+# mustNotCallTool check).
+
+- description: No writable rooms — skill stops and asks about access, no write
+  metadata:
+    skill: taskei-issue-creator
+  vars:
+    skillFile: ../../skills/taskei-issue-creator/SKILL.md
+    agent: taskei-mock
+    scenario: no-rooms
+    logFile: tmp/taskei-no-rooms.log
+    request: >
+      Create a Taskei STORY in the "Test Planning Room" room: "Add API rate
+      limiting to REST endpoints". It should capture a short overview and 3
+      acceptance criteria. Run exactly the Taskei tools the skill specs — no
+      extra tools.
+  assert:
+    # It verifies access via TaskeiGetRooms first.
+    - type: javascript
+      value: file://assertions/taskeiToolCalled.js
+      config:
+        expectedTool: TaskeiGetRooms
+    # With no writable rooms it must NOT create anything.
+    - type: javascript
+      value: file://assertions/taskeiToolCalled.js
+      config:
+        mustNotCallTool: TaskeiCreateTask
+    # And it tells the user access could not be confirmed.
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "no writable"
+          - "no rooms"
+          - "access"
+          - "could not"
+
+- description: Create a STORY end to end in the resolved room
+  metadata:
+    skill: taskei-issue-creator
+  vars:
+    skillFile: ../../skills/taskei-issue-creator/SKILL.md
+    agent: taskei-mock
+    logFile: tmp/taskei-create.log
+    request: >
+      Create a Taskei STORY in the "Test Planning Room" room titled "Add API
+      rate limiting to REST endpoints". Use a brief overview and 3 testable
+      acceptance criteria. I approve the draft — go ahead and create it. Run
+      exactly the Taskei tools the skill specs; do not ask me follow-up
+      questions, use sensible defaults.
+  assert:
+    # Resolves the room via TaskeiGetRooms.
+    - type: javascript
+      value: file://assertions/taskeiToolCalled.js
+      config:
+        expectedTool: TaskeiGetRooms
+    # Creates the task...
+    - type: javascript
+      value: file://assertions/taskeiToolCalled.js
+      config:
+        expectedTool: TaskeiCreateTask
+    # ...passing the resolved room UUID (not a name) as roomId.
+    - type: javascript
+      value: file://assertions/taskeiToolCalled.js
+      config:
+        expectedTool: TaskeiCreateTask
+        argContains: "284e66bb-e41a-4584-8d6c-a0c05f221818"
+    # ...with the STORY type.
+    - type: javascript
+      value: file://assertions/taskeiToolCalled.js
+      config:
+        expectedTool: TaskeiCreateTask
+        argContains: "STORY"
+    # Reports the created task back to the user.
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "TASK_new0001"
+          - "taskei.amazon.dev/tasks/TASK_new0001"
+          - "created"
+
+- description: 'Guard: a ": Tickets" room is refused as a planning target'
+  metadata:
+    skill: taskei-issue-creator
+  vars:
+    skillFile: ../../skills/taskei-issue-creator/SKILL.md
+    agent: taskei-mock
+    logFile: tmp/taskei-tickets-guard.log
+    request: >
+      Create a Taskei STORY in the "Improving Elasticache Agentic: Tickets"
+      room: "Track flaky integration test". Run exactly the Taskei tools the
+      skill specs.
+  assert:
+    # It still looks the room up.
+    - type: javascript
+      value: file://assertions/taskeiToolCalled.js
+      config:
+        expectedTool: TaskeiGetRooms
+    # It must NOT bulk-write a planning task into a live ": Tickets" queue
+    # without surfacing the warning first.
+    - type: javascript
+      value: file://assertions/taskeiToolCalled.js
+      config:
+        mustNotCallTool: TaskeiCreateTask
+    # It warns about the ticket-queue nature of the room.
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "Tickets"
+          - "ticket"
+          - "queue"
+          - "SLA"
+          - "intake"
+
+- description: Update an existing task uses TaskeiUpdateTask, never create
+  metadata:
+    skill: taskei-issue-creator
+  vars:
+    skillFile: ../../skills/taskei-issue-creator/SKILL.md
+    agent: taskei-mock
+    logFile: tmp/taskei-update.log
+    request: >
+      Update Taskei task TASK_abc123 in the "Test Planning Room" room to raise
+      its priority to High and add a note that the rate-limiting approach
+      changed. I approve the change — apply it. Run exactly the Taskei tools
+      the skill specs.
+  assert:
+    # Uses the update tool.
+    - type: javascript
+      value: file://assertions/taskeiToolCalled.js
+      config:
+        expectedTool: TaskeiUpdateTask
+    # ...targeting the right task id.
+    - type: javascript
+      value: file://assertions/taskeiToolCalled.js
+      config:
+        expectedTool: TaskeiUpdateTask
+        argContains: "TASK_abc123"
+    # An update must never create a new task.
+    - type: javascript
+      value: file://assertions/taskeiToolCalled.js
+      config:
+        mustNotCallTool: TaskeiCreateTask
+
+- description: Requested label absent from room — not invented, flagged to user
+  metadata:
+    skill: taskei-issue-creator
+  vars:
+    skillFile: ../../skills/taskei-issue-creator/SKILL.md
+    agent: taskei-mock
+    scenario: label-missing
+    logFile: tmp/taskei-label-missing.log
+    request: >
+      Create a Taskei STORY in the "Test Planning Room" room titled "Add API
+      rate limiting", and apply the label "tech-debt". I approve the draft.
+      Run exactly the Taskei tools the skill specs; use sensible defaults and
+      don't ask me follow-up questions.
+  assert:
+    # It consults the room's resources to resolve the label.
+    - type: javascript
+      value: file://assertions/taskeiToolCalled.js
+      config:
+        expectedTool: TaskeiGetRoomResources
+    # The label does not exist in this room, so it must NOT invent a UUID for
+    # it — no fabricated hex id ends up in any create call's labels arg.
+    - type: javascript
+      value: file://assertions/taskeiToolCalled.js
+      config:
+        argMustNotContain: "aa11bb22-cc33-dd44-ee55-ff6677889900"
+    # It surfaces that the label was not found rather than silently dropping it.
+    - type: javascript
+      value: file://assertions/containsAny.js
+      config:
+        values:
+          - "label"
+          - "not found"
+          - "does not exist"
+          - "could not"

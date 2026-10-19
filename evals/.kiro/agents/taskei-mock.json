@@ -1,0 +1,25 @@
+{
+  "name": "taskei-mock",
+  "description": "Eval-only agent: runs MCP-backed skills (e.g. taskei-issue-creator) against the mock builder-mcp server (evals/mocks/builder-mcp) instead of the real Taskei/Maxis backend. The analogue of prepending evals/mocks to PATH for the gh/git CLI mocks. The relative command path resolves from the eval workspace cwd (evals/), which is where the Kiro provider runs promptfoo; kiro-cli does NOT expand ${VAR} in agent args, so the path must be literal/relative, not an env var.",
+  "model": "auto",
+  "includeMcpJson": false,
+  "mcpServers": {
+    "builder-mcp": {
+      "command": "./mocks/builder-mcp",
+      "args": [],
+      "env": {}
+    }
+  },
+  "tools": ["fs_read", "fs_write", "execute_bash", "@builder-mcp"],
+  "allowedTools": ["fs_read", "fs_write", "execute_bash", "@builder-mcp"],
+  "permissions": {
+    "rules": [
+      {
+        "capability": "mcp",
+        "match": ["builder-mcp/*"],
+        "effect": "allow"
+      }
+    ]
+  },
+  "toolsSettings": {}
+}
