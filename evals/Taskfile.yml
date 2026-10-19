@@ -26,6 +26,18 @@ tasks:
     env:
       GH_MOCK_LOG_FILE: "{{.GH_MOCK_LOG_FILE}}"
 
+  eval:taskei-issue-creator:
+    desc: Evaluate the taskei-issue-creator skill (MCP-mock; pinned to Kiro)
+    cmds:
+      - "mkdir -p tmp"
+      # Per-test isolated mock-MCP command logs — the 5 cases run concurrently
+      # and must not see each other's tool calls (an absence check like a
+      # create test's mustNotCallTool would be contaminated otherwise).
+      - "rm -f tmp/taskei-no-rooms.log tmp/taskei-create.log tmp/taskei-tickets-guard.log tmp/taskei-update.log tmp/taskei-label-missing.log"
+      # MCP-backed: certifiable only under the Kiro provider's taskei-mock
+      # agent, so pin the config regardless of CONFIG.
+      - "npx promptfoo eval --no-cache --config promptfooconfig.kiro.yaml --filter-metadata skill=taskei-issue-creator --delay 0"
+
   eval:sr-pr-tables:
     desc: Evaluate the statusrpt-pr-tables skill (seeds a fresh run.db first)
     vars:

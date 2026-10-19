@@ -27,7 +27,10 @@ providers:
     config:
       model: "claude-sonnet-4.6"
 
-# Per-skill test files. Keep this list identical to promptfooconfig.kiro.yaml.
+# Per-skill test files. Keep this list identical to promptfooconfig.kiro.yaml,
+# EXCEPT taskei-issue-creator: that skill is MCP-backed and only certifiable
+# under the Kiro provider's `taskei-mock` agent, so it is intentionally omitted
+# here (Devin has no MCP-mock path).
 tests:
   - file://skills/github-issue-creator/tests.yaml
   - file://skills/statusrpt-pr-tables/tests.yaml

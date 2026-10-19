@@ -1,0 +1,311 @@
+#!/usr/bin/env node
+/*
+ * Mock builder-mcp MCP server for evaluating MCP-backed skills (e.g.
+ * taskei-issue-creator) without touching the real Taskei/Maxis backend.
+ *
+ * This is the MCP analogue of evals/mocks/gh: where the gh mock shadows a CLI
+ * binary on PATH, this shadows the `builder-mcp` MCP server. The eval agent
+ * config (evals/agents/taskei-mock.json) sets `includeMcpJson: false` and
+ * declares a single `builder-mcp` server whose command is THIS script, so the
+ * skill under test calls these fake Taskei tools instead of the real ones.
+ *
+ * It speaks just enough of the MCP stdio/JSON-RPC protocol (initialize,
+ * tools/list, tools/call) to serve a kiro-cli session, implements a CLOSED
+ * ALLOWLIST of exactly the Taskei tools the skill is permitted to use, returns
+ * deterministic fixtures, and LOGS every tools/call invocation (name + full
+ * arguments) to a command log so JavaScript assertions can verify tool usage —
+ * mirroring the gh mock's log-and-assert pattern.
+ *
+ * An off-allowlist tool call returns an isError result whose text names the
+ * offending tool, so a stray call surfaces as a diagnosable failure rather
+ * than being silently answered (same philosophy as the closed-allowlist gh/git
+ * mocks).
+ *
+ * Scenario / fixture control comes from env vars the provider forwards from the
+ * test's vars as PROMPTFOO_VAR_*:
+ *   - logFile:  per-test isolated command log (relative resolves against this
+ *               script's own dir -> ../tmp, matching the gh mock).
+ *   - scenario: "default" (happy path) | "no-rooms" (TaskeiGetRooms empty) |
+ *               "label-missing" (requested label absent from room resources).
+ *   - expectedRoom:   room name the happy-path room fixture should report.
+ *   - expectedRoomId: room UUID the happy-path room fixture should report.
+ */
+
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const readline = require('readline');
+
+// ---- command log -----------------------------------------------------------
+
+function resolveLogFile() {
+  const raw = process.env.PROMPTFOO_VAR_logFile;
+  if (raw) {
+    return path.isAbsolute(raw) ? raw : path.resolve(__dirname, '..', raw);
+  }
+  return (
+    process.env.TASKEI_MOCK_LOG_FILE ||
+    path.resolve(__dirname, '..', 'tmp', 'promptfoo-taskei-mock.log')
+  );
+}
+
+const LOG_FILE = resolveLogFile();
+fs.mkdirSync(path.dirname(LOG_FILE), { recursive: true });
+
+function logCall(toolName, args) {
+  const entry = [
+    '---',
+    new Date().toISOString(),
+    `tool: ${toolName}`,
+    `args: ${JSON.stringify(args || {})}`,
+    `scenario: ${process.env.PROMPTFOO_VAR_scenario || 'default'}`,
+    '',
+  ].join('\n');
+  fs.appendFileSync(LOG_FILE, entry);
+}
+
+// ---- fixtures ---------------------------------------------------------------
+
+const SCENARIO = process.env.PROMPTFOO_VAR_scenario || 'default';
+const ROOM_NAME = process.env.PROMPTFOO_VAR_expectedRoom || 'Test Planning Room';
+const ROOM_ID =
+  process.env.PROMPTFOO_VAR_expectedRoomId ||
+  '284e66bb-e41a-4584-8d6c-a0c05f221818';
+const SPRINT_ID = 'd9d808f5-83e7-4681-9dac-fdda3ec848be';
+const LABEL_ID = 'aa11bb22-cc33-dd44-ee55-ff6677889900';
+
+function rooms() {
+  if (SCENARIO === 'no-rooms') return [];
+  return [
+    { id: ROOM_ID, name: ROOM_NAME },
+    {
+      id: '11112222-3333-4444-5555-666677778888',
+      name: 'Improving Elasticache Agentic: Tickets',
+    },
+  ];
+}
+
+function roomResources() {
+  // In the label-missing scenario the room has NO labels, so a skill that
+  // tries to resolve a requested label name must notice its absence rather
+  // than invent a UUID.
+  const labels =
+    SCENARIO === 'label-missing'
+      ? []
+      : [{ id: LABEL_ID, name: 'tech-debt' }];
+  return {
+    Labels: labels,
+    Sprints: [{ id: SPRINT_ID, name: 'Sprint 7' }],
+    KanbanBoards: [],
+    WorkflowSteps: [],
+    Folders: [],
+    CustomAttributes: [],
+  };
+}
+
+function existingTasks() {
+  return [
+    {
+      id: 'TASK_abc123',
+      name: 'Existing story about rate limiting',
+      type: 'STORY',
+      status: 'Open',
+      priority: 'Medium',
+      roomId: ROOM_ID,
+    },
+  ];
+}
+
+// ---- tool implementations (closed allowlist) --------------------------------
+
+function textResult(obj) {
+  return {
+    content: [{ type: 'text', text: JSON.stringify(obj, null, 2) }],
+  };
+}
+
+function errorResult(message) {
+  return {
+    isError: true,
+    content: [{ type: 'text', text: message }],
+  };
+}
+
+const TOOLS = {
+  TaskeiGetRooms: {
+    description: "Fetch the user's writable Taskei rooms.",
+    inputSchema: {
+      type: 'object',
+      properties: { nameContains: { type: 'string' }, maxResults: { type: 'number' } },
+    },
+    handler(args) {
+      let out = rooms();
+      if (args && args.nameContains) {
+        const q = String(args.nameContains).toLowerCase();
+        out = out.filter((r) => r.name.toLowerCase().includes(q));
+      }
+      return textResult({ rooms: out });
+    },
+  },
+  TaskeiGetRoomResources: {
+    description: 'Fetch Labels/Sprints/etc. for a Taskei room.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        roomId: { type: 'string' },
+        resources: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['roomId', 'resources'],
+    },
+    handler(args) {
+      const all = roomResources();
+      const requested = (args && args.resources) || Object.keys(all);
+      const out = {};
+      requested.forEach((r) => {
+        out[r] = all[r] !== undefined ? all[r] : [];
+      });
+      return textResult(out);
+    },
+  },
+  TaskeiListTasks: {
+    description: 'List Taskei tasks matching filters.',
+    inputSchema: { type: 'object', properties: {} },
+    handler() {
+      return textResult({ tasks: existingTasks() });
+    },
+  },
+  TaskeiCreateTask: {
+    description: 'Create a new Taskei task.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        description: { type: 'string' },
+        roomId: { type: 'string' },
+      },
+      required: ['name', 'description', 'roomId'],
+    },
+    handler(args) {
+      if (!args || !args.roomId) {
+        return errorResult('TaskeiCreateTask: roomId is required');
+      }
+      return textResult({
+        id: 'TASK_new0001',
+        name: args.name,
+        roomId: args.roomId,
+        url: 'https://taskei.amazon.dev/tasks/TASK_new0001',
+      });
+    },
+  },
+  TaskeiUpdateTask: {
+    description: 'Update an existing Taskei task.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string' } },
+      required: ['id'],
+    },
+    handler(args) {
+      if (!args || !args.id) {
+        return errorResult('TaskeiUpdateTask: id is required');
+      }
+      return textResult({
+        id: args.id,
+        url: `https://taskei.amazon.dev/tasks/${args.id}`,
+      });
+    },
+  },
+};
+
+// ---- JSON-RPC / MCP plumbing ------------------------------------------------
+
+function send(obj) {
+  process.stdout.write(JSON.stringify(obj) + '\n');
+}
+
+function handle(msg) {
+  const { id, method, params } = msg;
+
+  switch (method) {
+    case 'initialize':
+      send({
+        jsonrpc: '2.0',
+        id,
+        result: {
+          protocolVersion: (params && params.protocolVersion) || '2024-11-05',
+          capabilities: { tools: {} },
+          serverInfo: { name: 'builder-mcp-mock', version: '0.0.1' },
+        },
+      });
+      return;
+
+    case 'notifications/initialized':
+      return; // notification, no response
+
+    case 'tools/list':
+      send({
+        jsonrpc: '2.0',
+        id,
+        result: {
+          tools: Object.entries(TOOLS).map(([name, t]) => ({
+            name,
+            description: t.description,
+            inputSchema: t.inputSchema,
+          })),
+        },
+      });
+      return;
+
+    case 'tools/call': {
+      const name = params && params.name;
+      const args = (params && params.arguments) || {};
+      logCall(name, args);
+      const tool = TOOLS[name];
+      if (!tool) {
+        // Off-allowlist: fail loudly and name the offending tool.
+        send({
+          jsonrpc: '2.0',
+          id,
+          result: errorResult(
+            `builder-mcp-mock: tool "${name}" is not on taskei-issue-creator's allowed set`
+          ),
+        });
+        return;
+      }
+      send({ jsonrpc: '2.0', id, result: tool.handler(args) });
+      return;
+    }
+
+    default:
+      if (id !== undefined) {
+        send({
+          jsonrpc: '2.0',
+          id,
+          error: { code: -32601, message: `Method not found: ${method}` },
+        });
+      }
+  }
+}
+
+const rl = readline.createInterface({ input: process.stdin });
+rl.on('line', (line) => {
+  const trimmed = line.trim();
+  if (!trimmed) return;
+  let msg;
+  try {
+    msg = JSON.parse(trimmed);
+  } catch (e) {
+    return; // ignore non-JSON lines
+  }
+  try {
+    handle(msg);
+  } catch (e) {
+    if (msg && msg.id !== undefined) {
+      send({
+        jsonrpc: '2.0',
+        id: msg.id,
+        error: { code: -32603, message: String((e && e.message) || e) },
+      });
+    }
+  }
+});
