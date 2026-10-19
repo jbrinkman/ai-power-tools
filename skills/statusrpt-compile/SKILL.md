@@ -38,8 +38,11 @@ before.
   fields), `infrastructure[]`, `sprint.tasks[]` (ALL tasks, unfiltered —
   including `workflow_action: "Not Started"` ones you must exclude
   yourself), `narratives[]`, `sources_consulted[]`.
-- The prior week's report markdown, for continuity — read it for what to
-  carry forward (open risks, dependencies) and what's now resolved.
+- The prior week's report markdown — the continuity BASELINE. Read it whole
+  before writing. For Risks, Dependencies, Lowlights, and Staffing it is the
+  starting point you update (see "Carry forward" in House Style and Step 4/7),
+  not merely a reference; for the other sections it tells you what to carry
+  forward (open risks, dependencies) and what's now resolved.
 
 ## House Style (binding — violating any of these is a defect)
 
@@ -77,6 +80,19 @@ before.
 - **No leftover placeholders** — every bullet you write must be a finished
   sentence from real bundle data, never "TBD", a template token, or
   commentary about the compilation process itself.
+- **Carry forward, don't rewrite from scratch.** The prior report is the
+  BASELINE for the narrative sections that the bundle does not fully
+  reconstruct — **Risks, Dependencies, Lowlights, and Staffing**. Start each
+  of these from the prior report's version and apply this week's deltas on
+  top; an entry is removed ONLY when this week's data gives it an explicit
+  disposition (resolved, mitigated, shipped, dropped-with-reason), and when
+  you remove one you say so (e.g. "resolved this week"). Never drop a prior
+  entry by silent omission — a prior risk or dependency with no backing data
+  in this week's bundle still carries forward verbatim unless the bundle
+  resolves it. The bundle-authoritative sections — Last Week's Progress,
+  This Week's Focus, Goals, Status Details, Infrastructure — are regenerated
+  from bundle data as before; this baseline rule does not loosen their
+  grounding.
 
 ## Instructions
 
@@ -129,12 +145,26 @@ badges itself `In Progress`; that is a contradiction.
 
 ### Step 4 — Write Risks and Dependencies
 
-Pull open risks from the prior report (unless resolved this week) plus any
-new risk implied by `projects.submitted` items stalled or
-`infrastructure` items aged. Each risk bullet: severity badge
-(`red`=High/`orange`=Medium/`yellow`=Low) + a short bold title + impact +
-mitigation. Dependencies are a plain bullet list of blocking factors, not
-badged.
+Start from the prior report's Risks and Dependencies as the baseline, then
+apply this week's deltas:
+
+1. **Carry every prior risk and dependency forward.** Copy each one from the
+   prior report. A prior entry stays in this week's report even when the
+   bundle has no data about it — the bundle not mentioning a risk is NOT a
+   resolution.
+2. **Update an entry** when this week's data changes it: adjust the severity
+   badge, impact, or mitigation to reflect the bundle (e.g. a submitted
+   project that stalled further, an infrastructure item that aged).
+3. **Remove an entry only with an explicit disposition.** Drop a prior risk/
+   dependency only when this week's data resolves or mitigates it, and say so
+   in the report (a one-line "resolved this week" note, or fold the
+   resolution into Last Week's Progress) rather than deleting it silently.
+4. **Add new entries** implied by this week's data — a `projects.submitted`
+   item stalled, an `infrastructure` item aged, a new blocking dependency.
+
+Each risk bullet: severity badge (`red`=High/`orange`=Medium/`yellow`=Low) +
+a short bold title + impact + mitigation. Dependencies are a plain bullet
+list of blocking factors, not badged.
 
 ### Step 5 — Write Goals and Status Details from the completed/merged/dropped projects
 
@@ -156,10 +186,19 @@ house-style words for infrastructure items — do not substitute a general
 status word) with the class from `status_class` (red/green). Never render
 these as a table.
 
-### Step 7 — Write Staffing
+### Step 7 — Write Lowlights and Staffing
 
-Counts and role buckets only, from whatever staffing context the request or
-prior report provides — no names, ever.
+**Lowlights** carry forward from the prior report as a baseline: keep each
+prior lowlight unless this week's data resolves it (then note the
+resolution), update any that this week's data changes, and add new ones the
+bundle implies. If the prior report's Lowlights was empty and nothing this
+week qualifies, keep it empty (`* none`).
+
+**Staffing** also carries forward from the prior report — reproduce its
+counts, role buckets, and any contract/end-date note, updating only what this
+week's staffing context actually changes. Counts and role buckets only, from
+whatever staffing context the request or prior report provides — no names,
+ever.
 
 ## Output
 

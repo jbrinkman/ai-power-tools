@@ -197,3 +197,24 @@
         rather than being report content itself. FAIL if any such
         process-narration sentence appears anywhere before or within the
         opening heading, regardless of how it's phrased.
+
+    # --- Criterion 9: prior-report risks/dependencies carry forward (deterministic) ---
+    # The whole point of giving compile the prior report: a narrative entry
+    # that lives ONLY in last week's report (no backing row in bundle.json)
+    # must survive into this week's report, not get rewritten away. The
+    # fixture's prior report carries a Low "Sample Risk" and a Dependencies
+    # note, and bundle.json mentions NEITHER — so if either is missing from
+    # the output, compile rebuilt the section from the bundle instead of
+    # carrying the prior forward (the exact information-loss defect this
+    # guards). The prior Staffing contract line must likewise survive.
+    - type: javascript
+      value: |
+        const prior = [
+          { label: 'carry-over Risk',       re: /Sample Risk/ },
+          { label: 'carry-over Dependency', re: /dependency note that should carry forward/i },
+          { label: 'Staffing contract line', re: /[Cc]ontract until December 31, 2099/ },
+        ];
+        const dropped = prior.filter(p => !p.re.test(output)).map(p => p.label);
+        return dropped.length === 0
+          ? { pass: true, score: 1, reason: 'All prior-report-only risks/dependencies/staffing carried forward' }
+          : { pass: false, score: 0, reason: `Prior-report entry dropped (section rebuilt from bundle instead of carried forward): ${dropped.join(', ')}` };
