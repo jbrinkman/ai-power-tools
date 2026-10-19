@@ -120,12 +120,35 @@ accident:
    `gh auth login`, then re-invoke this skill.
 2. `git status --porcelain` — if it reports anything, stop and tell the user
    to commit, stash, or discard those changes before starting a new report.
-3. `git checkout main` then `git pull` — get this checkout onto `main` and
-   synced with `origin/main`.
-4. `gh pr list --state open --author @me` — if this lists any open PR (the
-   prior week's report, almost always), stop and tell the user that report's
-   PR must be merged or closed first; name the PR(s) found. Do not proceed
-   until this returns empty.
+3. **Get onto `main` and prove it is at `origin/main`'s latest — do not
+   trust a bare `git pull`.** The failure this guards against is a stale
+   local `main` that is many commits behind origin, which makes a merged
+   prior-week report look un-merged. Run, in order:
+   - `git fetch origin --prune` — refresh remote refs first.
+   - `git checkout main`.
+   - `git merge --ff-only origin/main` — fast-forward local `main` to the
+     fetched `origin/main`. If this fails (local `main` has diverged with
+     its own commits), stop and tell the user; do not force or merge around
+     it.
+   - Verify: `git rev-parse main` and `git rev-parse origin/main` must now
+     print the **same** SHA. If they differ, stop — the sync did not land
+     and nothing downstream should run against a stale `main`.
+4. **Confirm no prior-week REPORT PR is still open.** Run `gh pr list
+   --state open --author @me` and read the branch of each result:
+   - A result whose branch matches `elasticache-agentic-status-<date>` (a
+     prior week's report) is a HARD STOP: tell the user that report's PR
+     must be merged or closed before a new report starts, name it, and do
+     not proceed.
+   - Any OTHER open PR (e.g. an unrelated skills or tooling PR) is NOT a
+     blocker — it will not be in a branch cut from fresh `main`. Still list
+     it in your hand-off so the user knows it is open, then continue.
+   - Independently confirm the most recent prior-week report actually
+     landed: the merge commit for its branch
+     (`elasticache-agentic-status-<prev-date>`) should be reachable from the
+     now-synced `main` (`git log --oneline main | grep` its branch name). If
+     you cannot find evidence the prior report merged AND there is no open
+     report PR for it, stop and surface that to the user rather than
+     silently building on an unpublished prior week.
 5. `git checkout -b elasticache-agentic-status-<YYYY-MM-DD>` (this run's
    report date) — fallback if that branch already exists from a prior,
    interrupted run of this same report: `git checkout elasticache-agentic-
