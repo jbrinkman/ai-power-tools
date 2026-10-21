@@ -1,0 +1,117 @@
+# Per-skill EDD eval suite for pr-comment-resolver.
+#
+# Scope of THIS suite: the test-timing behavior only. In a PR with several
+# comments, the per-comment push gate must run only the project's FAST checks
+# (format, lint, type-check, build, and fast/targeted tests), and the project's
+# LONG-RUNNING test suite must run ONCE after every comment is resolved, not
+# after each comment. Running a slow suite per comment multiplies the wait by
+# the number of comments.
+#
+# This is NOT a full behavioral run of the resolver loop (which drives live
+# git/gh across many turns and is not reliably reproducible under a single
+# non-interactive provider turn). Like statusrpt-compile grades the produced
+# report, this suite grades the PLAN the skill lays out for a described
+# multi-comment scenario.
+#
+# DESIGN NOTE (why the request is phrased "as the skill instructs"): a capable
+# model, asked how IT would sequence checks, invents the sensible tiered plan on
+# its own even when the SKILL.md does not prescribe it — so a naive scenario
+# probe passes before the skill is changed and measures the model, not the
+# skill. To make the eval actually discriminate, the request pins the model to
+# report the sequencing THE SKILL PRESCRIBES and to say plainly if the skill
+# does not prescribe a tiered plan. Against a skill that still runs every check
+# per push, a faithful answer therefore flags the full suite as running per push
+# (or calls the tiered plan a departure) — which the assertions below fail on.
+# After the skill prescribes the fast-per-comment / slow-once-at-the-end split,
+# the faithful answer presents it as the skill's own behavior and the suite
+# passes. No mocks are needed (plan-only; no live gh/git call).
+
+- description: >
+    Multi-comment PR with a slow suite: following the skill AS WRITTEN, the
+    per-comment push gate runs fast checks only and the long-running suite runs
+    once after all comments. The plan must present this as the skill's own
+    prescribed sequencing, not as a departure the model invented.
+  metadata:
+    skill: pr-comment-resolver
+  vars:
+    skillFile: ../../skills/pr-comment-resolver/SKILL.md
+    request: >
+      I am about to resolve the review comments on
+      https://github.com/example-org/example-repo/pull/42, which has 6
+      unresolved review comments. The project's full test suite is
+      `go test -race ./...` and takes about 8 minutes; formatting, linting,
+      type-checking and building each take a few seconds and a single-package
+      test is fast. Following this skill EXACTLY AS IT IS WRITTEN, lay out the
+      sequencing of CI/quality checks it prescribes: which checks the skill has
+      you run after committing each individual comment's fix (the per-comment
+      push gate), and when the skill has you run the full long-running test
+      suite. Report only what the skill itself instructs. If the skill does not
+      prescribe a particular tiering of fast versus long-running checks, say so
+      explicitly rather than inventing one. Do not run anything.
+  assert:
+    # --- Criterion 1: the long-running suite is run ONCE, after all comments.
+    # Deterministic: a faithful plan for the FIXED skill states the slow suite
+    # runs "once" together with an "after the last/after all comments / at the
+    # end" phrasing. The OLD skill has no such step, so this is absent there. ---
+    - type: javascript
+      value: |
+        const t = output.toLowerCase();
+        const once = /\bonce\b/.test(t);
+        const afterAll = /(after (all|the last|every) (the )?comment|after all comments|at the end|final branch tip|after the last (comment|fix) (is )?(resolved|pushed))/.test(t);
+        return (once && afterAll)
+          ? { pass: true, score: 1, reason: 'States the long-running suite runs once after all comments' }
+          : { pass: false, score: 0, reason: `Missing once-after-all phrasing (once=${once}, afterAll=${afterAll})` };
+
+    # --- Criterion 2: the per-comment gate is a FAST tier that excludes the
+    # long-running suite. Deterministic: the fixed skill introduces the "fast
+    # tier"/"fast gate" vocabulary AND states the full suite is deferred/excluded
+    # from the per-comment gate. The old skill has neither. ---
+    - type: javascript
+      value: |
+        const t = output.toLowerCase();
+        const fastTier = /\bfast (tier|gate|checks?)\b/.test(t);
+        const slowDeferred = /\b(defer|deferred|excluded?|not run|skip)\b/.test(t) && /\b(long[- ]?running|full)\b[^.\n]{0,40}\b(suite|test)\b/.test(t) || /\bgo test -race[^.\n]{0,30}\b(exclud|defer|not run|only .*end|at the end)\b/.test(t) || /\b(exclud|defer)[^.\n]{0,40}go test -race\b/.test(t);
+        if (!fastTier) return { pass: false, score: 0, reason: 'Per-comment gate not described as a fast tier/gate' };
+        return slowDeferred
+          ? { pass: true, score: 1, reason: 'Per-comment fast gate excludes/defers the long-running suite' }
+          : { pass: false, score: 0, reason: 'Did not say the long-running suite is deferred/excluded from the per-comment gate' };
+
+    # --- Criterion 3: the plan references the skill's own prescribed steps for
+    # this behavior (Step 5.3 fast gate + the final full-suite step). The OLD
+    # skill has only a single all-checks gate and no final-suite step, so a
+    # faithful plan cannot cite a dedicated deferred-suite step there. ---
+    - type: javascript
+      value: |
+        const t = output.toLowerCase();
+        // Fixed skill adds a distinct final full-suite step (named "Step 6b" in
+        // the skill) AND a two-tier framing. Accept either the step marker or an
+        // explicit "two-tier"/"two tier"/"fast ... then ... full" framing.
+        const finalSuiteStep = /step 6b/.test(t) || /final full[- ]?suite/.test(t) || /(two[- ]?tier)/.test(t);
+        const prescribed = /(the skill (does )?prescribe|the skill'?s own|as the skill|skill (describes|says|has you|instructs|calls))/.test(t);
+        return (finalSuiteStep && prescribed)
+          ? { pass: true, score: 1, reason: 'Cites the skill\'s own two-tier / final full-suite step as prescribed behavior' }
+          : { pass: false, score: 0, reason: `Did not ground the tiering in the skill\'s own steps (finalSuiteStep=${finalSuiteStep}, prescribed=${prescribed})` };
+
+    # --- Criterion 4: faithful two-tier plan presented as the skill's behavior
+    # (reading-comprehension; rubric). This is the primary semantic guard and is
+    # RED on the old skill (which has no tiering) / GREEN on the fixed skill.
+    # NOTE: the "does not run the slow suite per comment" judgment lives HERE, not
+    # in a deterministic negative check — a regex cannot tell a plan that PRESCRIBES
+    # the per-comment anti-pattern from one that NAMES it only to reject it (e.g.
+    # "running the slow suite after every comment multiplies the wait"), and chasing
+    # that distinction with proximity regex produced false failures. ---
+    - type: llm-rubric
+      value: >
+        The response reports the skill's OWN prescribed test sequencing for a
+        multi-comment PR as a two-tier plan: (a) after committing each comment's
+        fix the skill runs only FAST quality checks (formatting, linting,
+        type-checking, building, and at most a fast/targeted test) as the
+        per-comment push gate, and (b) the skill runs the full LONG-RUNNING test
+        suite exactly ONCE, after all comments are resolved, not after each
+        comment, with a failure of that final suite still fixed before the work
+        is done. CRUCIALLY, the response must present this as what the skill
+        instructs, NOT as a deviation, departure, or improvement the responder is
+        proposing on top of a skill that lacks it. FAIL if the response says the
+        skill runs all checks (tests included) before every push, if it frames
+        the tiering as a departure from the skill, if it runs the slow suite per
+        comment, or if it drops the slow suite entirely.

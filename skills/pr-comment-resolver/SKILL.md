@@ -216,17 +216,24 @@ Do these in order, per comment, so each fix maps to exactly one commit:
    Use `--no-gpg-sign` only if gpg is unavailable on this machine; otherwise
    respect the repo's signing config. Prefer staging the specific changed files
    over `git add .`.
-3. **Gate on CI checks before pushing.** Invoke the `verify-ci-checks` skill to
-   discover whatever CI build checks the project enforces (formatting, linting,
-   type-checking, building, and testing are common examples, but the real set is
-   project-specific and may include others) and run them locally against the
-   committed change. This is the push gate:
-   - **Gate PASS** — all checks pass; proceed to push.
+3. **Gate on the FAST checks before pushing.** Invoke the `verify-ci-checks`
+   skill to discover the CI build checks the project enforces, but at this
+   per-comment stage run only the **fast tier**: formatting, linting,
+   type-checking, building, and a fast or targeted test (for example the tests
+   for just the package this fix touched). **Defer the project's full
+   long-running test suite** — the whole-repository run that takes minutes — to a
+   single run after every comment is resolved (the new "final full-suite gate"
+   step after Step 6). Running that slow suite after each comment multiplies the
+   wait by the number of comments for no extra safety the final run does not
+   already give. Pass `verify-ci-checks` the fast tier as the checks to run now,
+   and tell it the long-running suite is deferred to the end. This fast gate is
+   the per-comment push gate:
+   - **Gate PASS** — the fast checks pass; proceed to push.
    - **Gate FAIL** — do **not** push. Fix the failing check(s), amend this
      comment's commit (or add a fixup that you squash into it so the fix stays
-     part of the same logical change), and re-run the gate until it passes. If
-     the same check keeps failing after a few focused attempts, stop and surface
-     it to the user rather than thrashing.
+     part of the same logical change), and re-run the fast gate until it passes.
+     If the same check keeps failing after a few focused attempts, stop and
+     surface it to the user rather than thrashing.
    - **NOT APPLICABLE** — the project exposes no discoverable checks; note that
      and proceed to push.
 4. **Push** to the PR's head branch from inside the worktree. Whether `origin`
@@ -293,9 +300,31 @@ commit SHA (if any), and a one-line note on the resolution.
 ## Step 6: Repeat until every comment is reviewed
 
 Continue through the queue one comment at a time. Do not stop early unless the
-user asks to. Each pushed fix either passed the local CI-check gate (Step 5.3)
-or had no discoverable checks, so each push should be push-ready; the remote CI
-run that the push triggers is confirmed separately and is not blocked on here.
+user asks to. Each pushed fix passed the per-comment **fast** gate (Step 5.3) or
+had no discoverable checks. The project's full long-running test suite has not
+run yet; it runs once now, in the next step, before the work is considered done.
+
+## Step 6b: Final full-suite gate (run the long-running tests once)
+
+After the last comment is resolved, run the project's full long-running test
+suite **once**, over the final branch tip, in the worktree. This is the run that
+was deferred from each per-comment gate in Step 5.3, so a cross-comment or
+cross-package regression that the per-comment fast/targeted tests could not see
+is caught here, in a single run rather than once per comment.
+
+1. Invoke `verify-ci-checks` for the full suite this time (the whole-repository
+   test run, for example `go test -race ./...`), plus any other long-running
+   checks the project gates on that were deferred from the fast tier.
+2. **Suite PASS** — the branch tip is verified; proceed to the summary.
+3. **Suite FAIL** — the work is not done. The earlier per-comment commits are
+   already pushed, so fix **forward** with a new commit (never amend or
+   force-push an already-pushed commit), run the fast gate on that fix, push it,
+   and re-run this full suite until it passes. Name which earlier fix most likely
+   caused the failure. If it keeps failing after a few focused attempts, stop and
+   surface it to the user.
+
+Run this step even if only one comment was addressed: one final whole-repository
+run is the floor, not something scaled away when the comment count is low.
 
 ## Step 7: Final summary table
 
@@ -377,6 +406,9 @@ meanwhile).
   assessment and given a decision by the user.
 - Each approved/alternative fix has its own commit, an in-thread reply with a
   commit link, and a resolved thread.
+- Each per-comment push was gated on the fast checks only (Step 5.3), and the
+  project's full long-running test suite was run once over the final branch tip
+  after all comments were resolved (Step 6b), with any failure fixed forward.
 - Each rejected comment has an in-thread reply explaining why no change was made
   and a resolved thread — no silent closes.
 - The final summary table (including the assessment column) and the list of

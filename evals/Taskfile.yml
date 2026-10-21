@@ -38,6 +38,12 @@ tasks:
       # agent, so pin the config regardless of CONFIG.
       - "npx promptfoo eval --no-cache --config promptfooconfig.kiro.yaml --filter-metadata skill=taskei-issue-creator --delay 0"
 
+  eval:pr-comment-resolver:
+    desc: Evaluate the pr-comment-resolver skill test-timing behavior (fast checks per comment, long-running suite once at the end)
+    cmds:
+      - "mkdir -p tmp"
+      - "npx promptfoo eval --no-cache --config {{.CONFIG}} --filter-metadata skill=pr-comment-resolver --delay 0"
+
   eval:sr-pr-tables:
     desc: Evaluate the statusrpt-pr-tables skill (seeds a fresh run.db first)
     vars:

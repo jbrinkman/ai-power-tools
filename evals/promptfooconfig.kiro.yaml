@@ -38,5 +38,6 @@ tests:
   - file://skills/statusrpt-gather/tests.yaml
   - file://skills/statusrpt-compile/tests.yaml
   - file://skills/statusrpt-publish/tests.yaml
+  - file://skills/pr-comment-resolver/tests.yaml
 
 outputPath: results.html
